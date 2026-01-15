@@ -17,7 +17,7 @@ model User {
   name     String?
   password String
   serial   String
-  status   Int     @default(0)
+  status   UserStatus  @default(PENDING)
 
   verificationCodes VerificationCode[]
   enrollments       Enrollment[]
@@ -47,6 +47,7 @@ model VerificationCode {
   @@unique([userId, purpose])
   @@index([userId])
   @@index([code])
+  @@index([expiresAt])
 }
 
 // ============================================
@@ -109,8 +110,6 @@ model Course {
   discountPrice   Float?   // Discounted price if any
   
   // Course meta
-  rating          Float    @default(0) // Average rating
-  totalReviews    Int      @default(0)
   totalDuration   Int      @default(0) // Total duration in minutes
   totalVideos     Int      @default(0)
   totalQuizzes    Int      @default(0)
@@ -147,8 +146,7 @@ model Section {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
-  @@index([courseId])
-  @@index([order])
+  @@index([courseId, order])
 }
 
 // ============================================
@@ -179,8 +177,7 @@ model Content {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @default(now()) @updatedAt
 
-  @@index([sectionId])
-  @@index([order])
+ @@index([sectionId, order])
 }
 
 enum ContentType {
@@ -260,7 +257,7 @@ model Enrollment {
   course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   status          EnrollmentStatus @default(ONGOING)
-  progress        Float            @default(0) // Overall Course Progress -- Percentage (0-100)
+  progress        Int            @default(0) // Overall Course Progress -- Percentage (0-100)
   
   enrolledAt      DateTime         @default(now())
   completedAt     DateTime?
@@ -290,8 +287,8 @@ model Progress {
   
   contentId   String
   content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  
-  completed   Boolean  @default(false) // ← Tracks each video/PDF/quiz
+
+  completed   Boolean  @default(false) // ← Tracks each video/PDF/quiz completion
   completedAt DateTime?
   
   createdAt   DateTime @default(now())
@@ -313,7 +310,7 @@ model QuizAttempt {
   quizId      String
   quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   
-  score       Float        // Percentage score
+  score       Int        // Percentage score
   passed      Boolean      @default(false)
   timeTaken   Int?         // Time taken in seconds
   
@@ -372,4 +369,11 @@ model Review {
   @@index([userId])
   @@index([courseId])
   @@index([rating])
+}
+
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
 }
