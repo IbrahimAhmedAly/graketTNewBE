@@ -5,7 +5,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { JwtModule } from './modules/jwt/jwt.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { InstructorModule } from './modules/instructor/instructor.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { EmailModule } from './modules/email/email.module';
     JwtModule,
     EmailModule,
     AuthModule,
+    AdminAuthModule,
+    InstructorModule,
   ],
   controllers: [],
   providers: [],
