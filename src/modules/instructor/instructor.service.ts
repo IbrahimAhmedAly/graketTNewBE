@@ -125,7 +125,7 @@ export class InstructorService {
     }
 
     // Check if email already exists (if updating email)
-    if (updateInstructorDto.email) {
+    if ('email' in updateInstructorDto && updateInstructorDto.email) {
       const emailExists =
         await this.instructorRepository.existsByEmailExcludingId(
           updateInstructorDto.email,

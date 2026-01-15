@@ -19,6 +19,7 @@ import {
   PaginationUtil,
   PaginatedResult,
 } from '../../utils/pagination/pagination.util';
+import { SlugUtil } from '../../utils/slug/slug.util';
 
 /**
  * Category Service
@@ -34,7 +35,7 @@ export class CategoryService {
   async create(
     createCategoryDto: CreateCategoryDto,
   ): Promise<{ message: string; data: CategoryResponseDto }> {
-    const { name, slug, ...rest } = createCategoryDto;
+    const { name, ...rest } = createCategoryDto;
 
     // Check if name already exists
     const existingByName = await this.categoryRepository.findByName(name);
@@ -42,10 +43,16 @@ export class CategoryService {
       throw new ConflictException('اسم التصنيف مستخدم بالفعل');
     }
 
-    // Check if slug already exists
-    const existingBySlug = await this.categoryRepository.findBySlug(slug);
-    if (existingBySlug) {
-      throw new ConflictException('الرابط التعريفي مستخدم بالفعل');
+    // Auto-generate slug from name
+    let slug = SlugUtil.generate(name);
+
+    // Check if slug already exists, if so, make it unique
+    let slugExists = await this.categoryRepository.findBySlug(slug);
+    let counter = 1;
+    while (slugExists) {
+      slug = `${SlugUtil.generate(name)}-${counter}`;
+      slugExists = await this.categoryRepository.findBySlug(slug);
+      counter++;
     }
 
     const category = await this.categoryRepository.create({
@@ -145,8 +152,11 @@ export class CategoryService {
       throw new NotFoundException('التصنيف غير موجود');
     }
 
-    // Check if name already exists (if updating name)
-    if (updateCategoryDto.name) {
+    // Prepare update data
+    const updateData: any = { ...updateCategoryDto };
+
+    // Check if name is being updated
+    if ('name' in updateCategoryDto && updateCategoryDto.name) {
       const nameExists = await this.categoryRepository.existsByNameExcludingId(
         updateCategoryDto.name,
         id,
@@ -154,22 +164,31 @@ export class CategoryService {
       if (nameExists) {
         throw new ConflictException('اسم التصنيف مستخدم بالفعل');
       }
-    }
 
-    // Check if slug already exists (if updating slug)
-    if (updateCategoryDto.slug) {
-      const slugExists = await this.categoryRepository.existsBySlugExcludingId(
-        updateCategoryDto.slug,
+      // Auto-generate new slug from updated name
+      let newSlug = SlugUtil.generate(updateCategoryDto.name);
+
+      // Check if slug already exists, if so, make it unique
+      let slugExists = await this.categoryRepository.existsBySlugExcludingId(
+        newSlug,
         id,
       );
-      if (slugExists) {
-        throw new ConflictException('الرابط التعريفي مستخدم بالفعل');
+      let counter = 1;
+      while (slugExists) {
+        newSlug = `${SlugUtil.generate(updateCategoryDto.name)}-${counter}`;
+        slugExists = await this.categoryRepository.existsBySlugExcludingId(
+          newSlug,
+          id,
+        );
+        counter++;
       }
+
+      updateData.slug = newSlug;
     }
 
     const updatedCategory = await this.categoryRepository.update(
       id,
-      updateCategoryDto,
+      updateData,
     );
 
     return {
