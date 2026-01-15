@@ -12,12 +12,12 @@ datasource db {
 // USER MODEL
 // ============================================
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
+  id       String     @id @default(uuid())
+  email    String     @unique
   name     String?
   password String
   serial   String
-  status   UserStatus  @default(PENDING)
+  status   UserStatus @default(PENDING)
 
   verificationCodes VerificationCode[]
   enrollments       Enrollment[]
@@ -32,14 +32,29 @@ model User {
   @@index([serial])
 }
 
+model Admin {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  name     String?
+  password String
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
+  VerificationCode VerificationCode[]
+
+  @@index([email])
+}
+
 model VerificationCode {
   id        String   @id @default(uuid())
   userId    String
+  adminId   String?
   code      String
   purpose   String
   expiresAt DateTime
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -54,17 +69,17 @@ model VerificationCode {
 // INSTRUCTOR MODEL
 // ============================================
 model Instructor {
-  id          String   @id @default(uuid())
-  name        String   // e.g., "Dr. Ahlam Said"
-  email       String?  @unique
-  avatar      String?  // Profile picture URL
-  bio         String?  @db.Text
-  title       String?  // e.g., "PhD in Computer Science"
-  
-  courses     Course[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id     String  @id @default(uuid())
+  name   String // e.g., "Dr. Ahlam Said"
+  email  String? @unique
+  avatar String? // Profile picture URL
+  bio    String? @db.Text
+  title  String? // e.g., "PhD in Computer Science"
+
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([email])
 }
@@ -73,16 +88,16 @@ model Instructor {
 // CATEGORY MODEL
 // ============================================
 model Category {
-  id          String   @id @default(uuid())
-  name        String   @unique // Design, Medical, Arts, etc.
-  slug        String   @unique
+  id          String  @id @default(uuid())
+  name        String  @unique // Design, Medical, Arts, etc.
+  slug        String  @unique
   description String?
-  icon        String?  // Icon URL or identifier
-  
-  courses     Course[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  icon        String? // Icon URL or identifier
+
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([slug])
 }
@@ -91,38 +106,38 @@ model Category {
 // COURSE MODEL
 // ============================================
 model Course {
-  id              String   @id @default(uuid())
-  title           String
-  slug            String   @unique
-  description     String   @db.Text
-  thumbnail       String?  // Course image/thumbnail
-  
+  id          String  @id @default(uuid())
+  title       String
+  slug        String  @unique
+  description String  @db.Text
+  thumbnail   String? // Course image/thumbnail
+
   // Instructor
-  instructorId    String
-  instructor      Instructor @relation(fields: [instructorId], references: [id])
-  
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+
   // Category
-  categoryId      String
-  category        Category @relation(fields: [categoryId], references: [id])
-  
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
   // Pricing
-  price           Float    @default(0)
-  discountPrice   Float?   // Discounted price if any
-  
+  price         Float  @default(0)
+  discountPrice Float? // Discounted price if any
+
   // Course meta
-  totalDuration   Int      @default(0) // Total duration in minutes
-  totalVideos     Int      @default(0)
-  totalQuizzes    Int      @default(0)
-  
+  totalDuration Int @default(0) // Total duration in minutes
+  totalVideos   Int @default(0)
+  totalQuizzes  Int @default(0)
+
   // Status
-  isPublished     Boolean  @default(false)
-  
-  sections        Section[]
-  enrollments     Enrollment[]
-  reviews         Review[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  isPublished Boolean @default(false)
+
+  sections    Section[]
+  enrollments Enrollment[]
+  reviews     Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([instructorId])
   @@index([categoryId])
@@ -134,17 +149,17 @@ model Course {
 // SECTION MODEL (Sections within a course)
 // ============================================
 model Section {
-  id          String   @id @default(uuid())
-  title       String   // e.g., "Section 1.0"
-  order       Int      // Order of section in course
-  
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  contents    Content[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id    String @id @default(uuid())
+  title String // e.g., "Section 1.0"
+  order Int // Order of section in course
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  contents Content[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([courseId, order])
 }
@@ -153,31 +168,31 @@ model Section {
 // CONTENT MODEL (Videos, PDFs, Quizzes)
 // ============================================
 model Content {
-  id          String      @id @default(uuid())
-  title       String      // e.g., "lec 1: introduction to IOT fundamentals"
-  type        ContentType // VIDEO, PDF, QUIZ
-  order       Int         // Order within section
-  duration    Int?        // Duration in minutes (for videos/quizzes)
-  
-  sectionId   String
-  section     Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  
-  // For Videos
-  videoUrl    String?
-  
-  // For PDFs
-  pdfUrl      String?
-  fileSize    Int?        // File size in bytes
-  
-  // For Quizzes
-  quiz        Quiz?
-  
-  progress    Progress[]
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
+  id       String      @id @default(uuid())
+  title    String // e.g., "lec 1: introduction to IOT fundamentals"
+  type     ContentType // VIDEO, PDF, QUIZ
+  order    Int // Order within section
+  duration Int? // Duration in minutes (for videos/quizzes)
 
- @@index([sectionId, order])
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  // For Videos
+  videoUrl String?
+
+  // For PDFs
+  pdfUrl   String?
+  fileSize Int? // File size in bytes
+
+  // For Quizzes
+  quiz Quiz?
+
+  progress Progress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([sectionId, order])
 }
 
 enum ContentType {
@@ -190,37 +205,37 @@ enum ContentType {
 // QUIZ MODEL
 // ============================================
 model Quiz {
-  id          String     @id @default(uuid())
-  contentId   String     @unique
-  content     Content    @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  
-  timeLimit   Int?       // Time limit in minutes
-  passingScore Int       @default(70) // Percentage required to pass
-  
-  questions   Question[]
-  attempts    QuizAttempt[]
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
+  id        String  @id @default(uuid())
+  contentId String  @unique
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  timeLimit    Int? // Time limit in minutes
+  passingScore Int  @default(70) // Percentage required to pass
+
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 // ============================================
 // QUESTION MODEL
 // ============================================
 model Question {
-  id          String   @id @default(uuid())
-  quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
-  questionText String  @db.Text
-  order       Int      // Question order in quiz
-  points      Int      @default(1)
-  
+  id     String @id @default(uuid())
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  questionText String @db.Text
+  order        Int // Question order in quiz
+  points       Int    @default(1)
+
   options     Option[]
   userAnswers UserAnswer[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([quizId])
   @@index([order])
@@ -230,17 +245,17 @@ model Question {
 // OPTION MODEL (Multiple choice answers)
 // ============================================
 model Option {
-  id          String   @id @default(uuid())
-  questionId  String
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  text        String
-  isCorrect   Boolean  @default(false)
-  order       Int      // Display order
-  
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  text      String
+  isCorrect Boolean @default(false)
+  order     Int // Display order
+
   userAnswers UserAnswer[]
-  
-  createdAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   @@index([questionId])
 }
@@ -249,21 +264,21 @@ model Option {
 // ENROLLMENT MODEL (User enrollment in courses)
 // ============================================
 model Enrollment {
-  id              String           @id @default(uuid())
-  userId          String
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  courseId        String
-  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  status          EnrollmentStatus @default(ONGOING)
-  progress        Int            @default(0) // Overall Course Progress -- Percentage (0-100)
-  
-  enrolledAt      DateTime         @default(now())
-  completedAt     DateTime?
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @default(now()) @updatedAt
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  status   EnrollmentStatus @default(ONGOING)
+  progress Int              @default(0) // Overall Course Progress -- Percentage (0-100)
+
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -281,18 +296,18 @@ enum EnrollmentStatus {
 // PROGRESS MODEL (Track content completion)
 // ============================================
 model Progress {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  contentId   String
-  content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  completed   Boolean  @default(false) // ← Tracks each video/PDF/quiz completion
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  completed   Boolean   @default(false) // ← Tracks each video/PDF/quiz completion
   completedAt DateTime?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([userId, contentId])
   @@index([userId])
@@ -303,24 +318,24 @@ model Progress {
 // QUIZ ATTEMPT MODEL
 // ============================================
 model QuizAttempt {
-  id          String       @id @default(uuid())
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  quizId      String
-  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
-  score       Int        // Percentage score
-  passed      Boolean      @default(false)
-  timeTaken   Int?         // Time taken in seconds
-  
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  score     Int // Percentage score
+  passed    Boolean @default(false)
+  timeTaken Int? // Time taken in seconds
+
   userAnswers UserAnswer[]
-  
-  startedAt   DateTime     @default(now())
+
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now()) @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([userId])
   @@index([quizId])
@@ -330,19 +345,19 @@ model QuizAttempt {
 // USER ANSWER MODEL (Track answers in quiz attempts)
 // ============================================
 model UserAnswer {
-  id            String      @id @default(uuid())
-  attemptId     String
-  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  
-  questionId    String
-  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
+  id        String      @id @default(uuid())
+  attemptId String
+  attempt   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
   selectedOptionId String?
-  selectedOption   Option?  @relation(fields: [selectedOptionId], references: [id])
-  
-  isCorrect     Boolean     @default(false)
-  
-  createdAt     DateTime    @default(now())
+  selectedOption   Option? @relation(fields: [selectedOptionId], references: [id])
+
+  isCorrect Boolean @default(false)
+
+  createdAt DateTime @default(now())
 
   @@index([attemptId])
   @@index([questionId])
@@ -352,25 +367,24 @@ model UserAnswer {
 // REVIEW MODEL (Course reviews and ratings)
 // ============================================
 model Review {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  rating      Float    // 1-5 stars
-  comment     String?  @db.Text
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  rating  Float // 1-5 stars
+  comment String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([userId, courseId]) // One review per user per course
   @@index([userId])
   @@index([courseId])
   @@index([rating])
 }
-
 
 enum UserStatus {
   PENDING
