@@ -26,6 +26,16 @@ export class OTPUtil {
   }
 
   /**
+   * Calculate expiration date for Admin OTP
+   * @returns {Date} Expiration date (10 minutes from now)
+   */
+  static getAdminExpirationDate(): Date {
+    const now = new Date();
+    const expiryMilliseconds = OTP_CONFIG.ADMIN_EXPIRY_MINUTES * 60 * 1000;
+    return new Date(now.getTime() + expiryMilliseconds);
+  }
+
+  /**
    * Check if OTP is expired
    * @param {Date} expiresAt - Expiration date
    * @returns {boolean} True if expired, false otherwise

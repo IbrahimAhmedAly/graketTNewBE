@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { InstructorModule } from './modules/instructor/instructor.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { InstructorModule } from './modules/instructor/instructor.module';
     AuthModule,
     AdminAuthModule,
     InstructorModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [],

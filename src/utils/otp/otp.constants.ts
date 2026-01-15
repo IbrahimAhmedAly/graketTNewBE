@@ -9,6 +9,9 @@ export const OTP_CONFIG = {
   // OTP expiry time in minutes
   EXPIRY_MINUTES: 30,
 
+  // Admin OTP expiry time in minutes
+  ADMIN_EXPIRY_MINUTES: 10,
+
   // OTP code range
   MIN_VALUE: 100000, // 6-digit minimum
   MAX_VALUE: 999999, // 6-digit maximum
@@ -17,4 +20,5 @@ export const OTP_CONFIG = {
 export enum OTPPurpose {
   EMAIL_VERIFICATION = 'email_verification',
   PASSWORD_RESET = 'password_reset',
+  ADMIN_LOGIN = 'admin_login',
 }
