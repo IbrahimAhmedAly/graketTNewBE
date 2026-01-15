@@ -1,0 +1,13 @@
+{
+  "isEmail": "يجب أن يكون {field} عنوان بريد إلكتروني صالح",
+  "isString": "يجب أن يكون {field} نص",
+  "isNotEmpty": "{field} مطلوب",
+  "minLength": "يجب أن يكون {field} {min} أحرف على الأقل",
+  "maxLength": "يجب ألا يتجاوز {field} {max} أحرف",
+  "isEnum": "{field} يجب أن يكون قيمة صالحة",
+  "matches": "{field} يجب أن يحتوي على حرف كبير وحرف صغير ورقم واحد على الأقل",
+  "isBoolean": "يجب أن يكون {field} قيمة منطقية",
+  "isNumber": "يجب أن يكون {field} رقم",
+  "min": "يجب أن يكون {field} على الأقل {min}",
+  "max": "يجب ألا يتجاوز {field} {max}"
+}

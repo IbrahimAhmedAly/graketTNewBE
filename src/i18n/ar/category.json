@@ -1,0 +1,9 @@
+{
+  "notFound": "الفئة غير موجودة",
+  "createSuccess": "تم إنشاء الفئة بنجاح",
+  "updateSuccess": "تم تحديث الفئة بنجاح",
+  "deleteSuccess": "تم حذف الفئة بنجاح",
+  "languageNotFound": "اللغة غير موجودة",
+  "bothTranslationsRequired": "يجب توفير الترجمتين الإنجليزية والعربية",
+  "invalidLanguage": "اللغة المقدمة غير صالحة. يتم دعم اللغة الإنجليزية والعربية فقط"
+}

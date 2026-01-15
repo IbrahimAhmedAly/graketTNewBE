@@ -1,0 +1,11 @@
+{
+  "notFound": "الحدث غير موجود",
+  "notActive": "الحدث غير نشط",
+  "createSuccess": "تم إنشاء الحدث بنجاح",
+  "updateSuccess": "تم تحديث الحدث بنجاح",
+  "deleteSuccess": "تم حذف الحدث بنجاح",
+  "invalidDateRange": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية",
+  "languageNotFound": "اللغة غير موجودة",
+  "bothTranslationsRequired": "يجب توفير الترجمتين الإنجليزية والعربية",
+  "invalidLanguage": "لغة غير صالحة. اللغات المدعومة فقط الإنجليزية والعربية"
+}

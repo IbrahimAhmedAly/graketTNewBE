@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "badRequest": "Bad Request",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden",
+    "notFound": "Not Found",
+    "conflict": "Conflict",
+    "internalServerError": "Internal Server Error",
+    "validationFailed": "Validation Failed"
+  },
+  "success": {
+    "created": "Created Successfully",
+    "updated": "Updated Successfully",
+    "deleted": "Deleted Successfully"
+  },
+  "boothNotFound": "Booth not found",
+  "boothNotBelongToEvent": "Booth does not belong to this event",
+  "boothAlreadyBooked": "Booth is already booked",
+  "boothNotBooked": "Booth is not currently booked",
+  "eventRequestNotFound": "Event request not found for this email",
+  "requestAlreadyHasBooth": "This request already has a booth assigned"
+}

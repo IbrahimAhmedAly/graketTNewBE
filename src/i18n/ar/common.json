@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "badRequest": "طلب غير صالح",
+    "unauthorized": "غير مصرح",
+    "forbidden": "ممنوع",
+    "notFound": "غير موجود",
+    "conflict": "تعارض",
+    "internalServerError": "خطأ في الخادم الداخلي",
+    "validationFailed": "فشل التحقق من الصحة"
+  },
+  "success": {
+    "created": "تم الإنشاء بنجاح",
+    "updated": "تم التحديث بنجاح",
+    "deleted": "تم الحذف بنجاح"
+  },
+  "boothNotFound": "الجناح غير موجود",
+  "boothNotBelongToEvent": "الجناح لا ينتمي لهذا الحدث",
+  "boothAlreadyBooked": "الجناح محجوز بالفعل",
+  "boothNotBooked": "الجناح غير محجوز حالياً",
+  "eventRequestNotFound": "طلب الحدث غير موجود لهذا البريد الإلكتروني",
+  "requestAlreadyHasBooth": "هذا الطلب لديه بالفعل جناح مخصص"
+}

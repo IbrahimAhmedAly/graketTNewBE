@@ -1,0 +1,10 @@
+{
+  "languageNotFound": "اللغة غير موجودة",
+  "contentNotFound": "المحتوى غير موجود",
+  "bothTranslationsRequired": "يجب توفير الترجمتين الإنجليزية والعربية",
+  "updateSuccess": "تم تحديث المحتوى بنجاح",
+  "createSuccess": "تم إنشاء المحتوى بنجاح",
+  "bannerNotFound": "البانر غير موجود",
+  "socialContactNotFound": "معلومات التواصل الاجتماعي غير موجودة",
+  "translationsRequired": "الترجمات مطلوبة للإعداد الأولي"
+}

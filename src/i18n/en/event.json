@@ -1,0 +1,11 @@
+{
+  "notFound": "Event not found",
+  "notActive": "Event is not active",
+  "createSuccess": "Event created successfully",
+  "updateSuccess": "Event updated successfully",
+  "deleteSuccess": "Event deleted successfully",
+  "invalidDateRange": "Start date must be before end date",
+  "languageNotFound": "Language not found",
+  "bothTranslationsRequired": "Both English and Arabic translations are required",
+  "invalidLanguage": "Invalid language. Only English and Arabic are supported"
+}

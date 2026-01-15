@@ -1,0 +1,10 @@
+{
+  "languageNotFound": "Language not found",
+  "contentNotFound": "Content not found",
+  "bothTranslationsRequired": "Both English and Arabic translations are required",
+  "updateSuccess": "Content updated successfully",
+  "createSuccess": "Content created successfully",
+  "bannerNotFound": "Banner not found",
+  "socialContactNotFound": "Social contact information not found",
+  "translationsRequired": "Translations are required for initial setup"
+}

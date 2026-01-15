@@ -1,0 +1,9 @@
+{
+  "notFound": "Category not found",
+  "createSuccess": "Category created successfully",
+  "updateSuccess": "Category updated successfully",
+  "deleteSuccess": "Category deleted successfully",
+  "languageNotFound": "Language not found",
+  "bothTranslationsRequired": "Both English and Arabic translations are required",
+  "invalidLanguage": "Invalid language provided. Only English and Arabic are supported"
+}

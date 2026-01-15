@@ -1,0 +1,12 @@
+{
+  "isEmail": "{field} must be a valid email address",
+  "isString": "{field} must be a text",
+  "isNotEmpty": "{field} is a required field",
+  "minLength": "{field} must be at least {min} characters",
+  "maxLength": "{field} cannot exceed {max} characters",
+  "isEnum": "{field} must be a valid value",
+  "isBoolean": "{field} must be a boolean value",
+  "isNumber": "{field} must be a number",
+  "min": "{field} must be at least {min}",
+  "max": "{field} cannot exceed {max}"
+}
