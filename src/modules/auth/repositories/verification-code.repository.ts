@@ -106,4 +106,77 @@ export class VerificationCodeRepository {
     });
     return result.count;
   }
+
+  /**
+   * Find verification code by admin ID and purpose
+   */
+  async findByAdminAndPurpose(
+    adminId: string,
+    purpose: OTPPurpose,
+  ): Promise<VerificationCode | null> {
+    return this.prisma.verificationCode.findFirst({
+      where: {
+        adminId,
+        purpose,
+      },
+    });
+  }
+
+  /**
+   * Create or update verification code for admin
+   */
+  async upsertForAdmin(
+    adminId: string,
+    purpose: OTPPurpose,
+    code: string,
+    expiresAt: Date,
+  ): Promise<VerificationCode> {
+    // First, try to find existing code
+    const existing = await this.findByAdminAndPurpose(adminId, purpose);
+
+    if (existing) {
+      // Update existing
+      return this.prisma.verificationCode.update({
+        where: { id: existing.id },
+        data: {
+          code,
+          expiresAt,
+        },
+      });
+    }
+
+    // Create new
+    return this.prisma.verificationCode.create({
+      data: {
+        adminId,
+        purpose,
+        code,
+        expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Delete verification code by admin ID and purpose
+   */
+  async deleteByAdminAndPurpose(
+    adminId: string,
+    purpose: OTPPurpose,
+  ): Promise<void> {
+    await this.prisma.verificationCode.deleteMany({
+      where: {
+        adminId,
+        purpose,
+      },
+    });
+  }
+
+  /**
+   * Delete all verification codes for an admin
+   */
+  async deleteAllByAdmin(adminId: string): Promise<void> {
+    await this.prisma.verificationCode.deleteMany({
+      where: { adminId },
+    });
+  }
 }
