@@ -60,9 +60,9 @@ export class JwtTokenService {
         type: TokenType.ACCESS,
       },
       {
-        privateKey: this.privateKey,
+        secret: this.privateKey,
         algorithm: 'RS256',
-        expiresIn: envConfig.jwt.accessTokenExpiry,
+        expiresIn: envConfig.jwt.accessTokenExpiry as any,
       },
     );
 
@@ -80,9 +80,9 @@ export class JwtTokenService {
           type: TokenType.REFRESH,
         },
         {
-          privateKey: this.privateKey,
+          secret: this.privateKey,
           algorithm: 'RS256',
-          expiresIn: envConfig.jwt.refreshTokenExpiry,
+          expiresIn: envConfig.jwt.refreshTokenExpiry as any,
         },
       );
 
@@ -110,9 +110,9 @@ export class JwtTokenService {
         purpose,
       },
       {
-        privateKey: this.privateKey,
+        secret: this.privateKey,
         algorithm: 'RS256',
-        expiresIn,
+        expiresIn: expiresIn as any,
       },
     );
   }

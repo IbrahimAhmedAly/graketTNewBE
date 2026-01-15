@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
@@ -65,7 +66,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     // Check if user is active
-    if (user.status !== 1) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Account is not active');
     }
 

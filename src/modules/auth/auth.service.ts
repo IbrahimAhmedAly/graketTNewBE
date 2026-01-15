@@ -7,6 +7,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { UserStatus } from '@prisma/client';
 
 // Repositories
 import { UserRepository } from './repositories/user.repository';
@@ -55,7 +56,7 @@ export class AuthService {
 
     if (existingUser) {
       // If user exists and is pending, resend verification
-      if (existingUser.status === 0) {
+      if (existingUser.status === UserStatus.PENDING) {
         return await this.resendVerificationCode(existingUser.id, email);
       }
 
@@ -71,7 +72,7 @@ export class AuthService {
       email,
       password: hashedPassword,
       serial,
-      status: 0, // Pending
+      status: UserStatus.PENDING,
     });
 
     // Generate OTP code
@@ -154,7 +155,7 @@ export class AuthService {
     }
 
     // Activate user account
-    await this.userRepository.updateStatus(user.id, 1);
+    await this.userRepository.updateStatus(user.id, UserStatus.ACTIVE);
 
     // Delete verification code
     await this.verificationCodeRepository.deleteByUserAndPurpose(
@@ -173,7 +174,7 @@ export class AuthService {
 
     return {
       ...userData,
-      status: 1,
+      status: UserStatus.ACTIVE,
       accessToken: tokens.access.token,
       refreshToken: tokens.refresh?.token,
       message: 'تم تفعيل الحساب بنجاح',
@@ -209,7 +210,7 @@ export class AuthService {
     }
 
     // Check if user is active
-    if (user.status !== 1) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new ForbiddenException('الحساب غير مفعل');
     }
 
@@ -242,7 +243,7 @@ export class AuthService {
     }
 
     // Check if user is active
-    if (user.status === 0) {
+    if (user.status === UserStatus.PENDING) {
       throw new BadRequestException('الحساب غير مفعل، يرجى تفعيل الحساب أولاً');
     }
 
@@ -406,7 +407,7 @@ export class AuthService {
       }
 
       // Check if user is active
-      if (user.status !== 1) {
+      if (user.status !== UserStatus.ACTIVE) {
         throw new UnauthorizedException('Account is not active');
       }
 
