@@ -3,6 +3,7 @@ import {
   UserStatus,
   ContentType,
   EnrollmentStatus,
+  PurchaseType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -20,6 +21,8 @@ async function main() {
   await prisma.quiz.deleteMany();
   await prisma.progress.deleteMany();
   await prisma.review.deleteMany();
+  await prisma.purchase.deleteMany();
+  await prisma.purchaseCode.deleteMany();
   await prisma.enrollment.deleteMany();
   await prisma.content.deleteMany();
   await prisma.section.deleteMany();
@@ -663,6 +666,162 @@ async function main() {
   console.log('✅ Created 4 reviews\n');
 
   // ============================================
+  // 9. CREATE PURCHASE CODES
+  // ============================================
+  console.log('🎫 Creating purchase codes...');
+
+  // Course purchase codes
+  const webDevCourseCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'WEBDEV-2026-FULL',
+      type: PurchaseType.COURSE,
+      courseId: webDevCourse.id,
+      isUsed: true,
+      usedBy: users[0].id,
+      usedAt: new Date('2026-01-15'),
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 1,
+    },
+  });
+
+  const dataScienceCourseCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'DATASCI-PROMO-001',
+      type: PurchaseType.COURSE,
+      courseId: dataScienceCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 0,
+      expiresAt: new Date('2026-12-31'), // Valid until end of year
+    },
+  });
+
+  const mobileDevCourseCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'MOBILE-DEV-2026',
+      type: PurchaseType.COURSE,
+      courseId: mobileDevCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 0,
+    },
+  });
+
+  const designCourseCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'DESIGN-EXPIRED-001',
+      type: PurchaseType.COURSE,
+      courseId: designCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 0,
+      expiresAt: new Date('2026-01-01'), // Expired
+    },
+  });
+
+  // Video purchase codes
+  const htmlIntroVideoCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'VIDEO-HTML-INTRO',
+      type: PurchaseType.VIDEO,
+      contentId: content1_1.id,
+      isUsed: true,
+      usedBy: users[1].id,
+      usedAt: new Date('2026-01-18'),
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 1,
+    },
+  });
+
+  const htmlTagsVideoCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'VIDEO-HTML-TAGS',
+      type: PurchaseType.VIDEO,
+      contentId: content1_2.id,
+      isUsed: true,
+      usedBy: users[1].id,
+      usedAt: new Date('2026-01-19'),
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 1,
+    },
+  });
+
+  const cssIntroVideoCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'VIDEO-CSS-INTRO-FREE',
+      type: PurchaseType.VIDEO,
+      contentId: content1_1.id, // Reusing content for demo
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 0,
+    },
+  });
+
+  // Multi-use code for promotional purposes
+  const promoMultiUseCode = await prisma.purchaseCode.create({
+    data: {
+      code: 'PROMO-MULTI-USE-10',
+      type: PurchaseType.COURSE,
+      courseId: webDevCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 10,
+      usedCount: 0,
+      expiresAt: new Date('2026-06-30'),
+    },
+  });
+
+  console.log('✅ Created 8 purchase codes\n');
+
+  // ============================================
+  // 10. CREATE PURCHASES
+  // ============================================
+  console.log('💰 Creating purchases...');
+
+  // User 1 (Ahmed) purchased the full Web Development course
+  await prisma.purchase.create({
+    data: {
+      type: PurchaseType.COURSE,
+      userId: users[0].id,
+      courseId: webDevCourse.id,
+      purchaseCodeId: webDevCourseCode.id,
+      purchasedAt: new Date('2026-01-15'),
+    },
+  });
+
+  // User 2 (Fatima) purchased individual videos
+  await prisma.purchase.create({
+    data: {
+      type: PurchaseType.VIDEO,
+      userId: users[1].id,
+      contentId: content1_1.id,
+      purchaseCodeId: htmlIntroVideoCode.id,
+      purchasedAt: new Date('2026-01-18'),
+    },
+  });
+
+  await prisma.purchase.create({
+    data: {
+      type: PurchaseType.VIDEO,
+      userId: users[1].id,
+      contentId: content1_2.id,
+      purchaseCodeId: htmlTagsVideoCode.id,
+      purchasedAt: new Date('2026-01-19'),
+    },
+  });
+
+  // User 3 (Omar) has no purchases yet
+
+  console.log('✅ Created 3 purchases\n');
+
+  // ============================================
   // SUMMARY
   // ============================================
   console.log('🎉 Seeding completed successfully!\n');
@@ -675,12 +834,22 @@ async function main() {
   console.log(`   - Sections: Multiple per course`);
   console.log(`   - Content: Videos, PDFs, and Quizzes`);
   console.log(`   - Enrollments: ${enrollments.length}`);
-  console.log(`   - Reviews: 4\n`);
+  console.log(`   - Reviews: 4`);
+  console.log(`   - Purchase Codes: 8 (3 used, 4 unused, 1 expired)`);
+  console.log(`   - Purchases: 3 (1 course, 2 videos)\n`);
   console.log('🔐 Login credentials:');
   console.log('   Admin: admin@graket.com / password123');
-  console.log('   User 1: ahmed.mohamed@example.com / password123');
-  console.log('   User 2: fatima.ali@example.com / password123');
-  console.log('   User 3: omar.hassan@example.com / password123\n');
+  console.log('   User 1 (Ahmed): ahmed.mohamed@example.com / password123');
+  console.log('     → Purchased: Web Development Course (full course)');
+  console.log('   User 2 (Fatima): fatima.ali@example.com / password123');
+  console.log('     → Purchased: 2 individual videos (HTML Intro, HTML Tags)');
+  console.log('   User 3 (Omar): omar.hassan@example.com / password123');
+  console.log('     → No purchases yet\n');
+  console.log('🎫 Available purchase codes:');
+  console.log('   - DATASCI-PROMO-001 (Data Science Course - unused)');
+  console.log('   - MOBILE-DEV-2026 (Mobile Development Course - unused)');
+  console.log('   - VIDEO-CSS-INTRO-FREE (CSS Video - unused)');
+  console.log('   - PROMO-MULTI-USE-10 (Web Dev Course - multi-use, 0/10 used)\n');
 }
 
 main()
