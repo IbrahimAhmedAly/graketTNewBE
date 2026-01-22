@@ -23,14 +23,7 @@
     "p:migrate": "npx prisma migrate dev",
     "p:studio": "npx prisma studio",
     "p:db:push": "npx prisma db push",
-    "seed": "ts-node prisma/seed.ts",
-    "seed:plans": "ts-node prisma/seeds/seed-subscription-plans.ts",
-    "seed:languages": "ts-node prisma/seeds/seed-languages.ts",
-    "seed:training-fields": "ts-node prisma/seeds/seed-training-fields.ts",
-    "seed:training-skills": "ts-node prisma/seeds/seed-training-skills.ts",
-    "seed:cultural": "ts-node prisma/seeds/seed-cultural-backgrounds.ts",
-    "seed:addons": "ts-node prisma/seeds/addons.seed.ts",
-    "seed:roles": "ts-node prisma/seeds/roles-permissions.seed"
+    "seed": "ts-node prisma/seed.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
