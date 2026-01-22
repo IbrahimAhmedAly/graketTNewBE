@@ -96,6 +96,7 @@ model Category {
   icon        String? // Icon URL or identifier
 
   courses Course[]
+  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
