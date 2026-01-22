@@ -24,6 +24,8 @@ model User {
   progress          Progress[]
   quizAttempts      QuizAttempt[]
   reviews           Review[]
+  purchases         Purchase[]
+  usedPurchaseCodes PurchaseCode[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -38,9 +40,11 @@ model Admin {
   name     String?
   password String
 
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @default(now()) @updatedAt
-  VerificationCode VerificationCode[]
+  verificationCodes VerificationCode[]
+  purchaseCodes     PurchaseCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([email])
 }
@@ -96,7 +100,6 @@ model Category {
   icon        String? // Icon URL or identifier
 
   courses Course[]
-  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -134,9 +137,11 @@ model Course {
   // Status
   isPublished Boolean @default(false)
 
-  sections    Section[]
-  enrollments Enrollment[]
-  reviews     Review[]
+  sections      Section[]
+  enrollments   Enrollment[]
+  reviews       Review[]
+  purchaseCodes PurchaseCode[]
+  purchases     Purchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -189,7 +194,9 @@ model Content {
   // For Quizzes
   quiz Quiz?
 
-  progress Progress[]
+  progress      Progress[]
+  purchaseCodes PurchaseCode[]
+  purchases     Purchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -392,4 +399,85 @@ enum UserStatus {
   PENDING
   ACTIVE
   SUSPENDED
+}
+
+// ============================================
+// PURCHASE CODE MODEL (One-time purchase codes)
+// ============================================
+model PurchaseCode {
+  id   String       @id @default(uuid())
+  code String       @unique // The actual purchase code (e.g., "COURSE-ABC123")
+  type PurchaseType // COURSE or VIDEO
+
+  // What the code is for
+  courseId  String? // If type is COURSE
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  contentId String? // If type is VIDEO
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  // Usage tracking
+  isUsed Boolean   @default(false)
+  usedBy String? // User ID who used the code
+  user   User?     @relation(fields: [usedBy], references: [id], onDelete: SetNull)
+  usedAt DateTime?
+
+  // Code metadata
+  expiresAt DateTime? // Optional expiration date
+  maxUses   Int       @default(1) // Default: one-time use (can be changed for multi-use codes)
+  usedCount Int       @default(0) // Track how many times it's been used
+
+  // Admin who created the code
+  createdBy String
+  admin     Admin  @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  purchases Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([code])
+  @@index([isUsed])
+  @@index([type])
+  @@index([courseId])
+  @@index([contentId])
+  @@index([createdBy])
+}
+
+// ============================================
+// PURCHASE MODEL (User purchases)
+// ============================================
+model Purchase {
+  id   String       @id @default(uuid())
+  type PurchaseType // COURSE or VIDEO
+
+  // User who made the purchase
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // What was purchased
+  courseId  String? // If type is COURSE
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  contentId String? // If type is VIDEO
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  // Purchase code used
+  purchaseCodeId String
+  purchaseCode   PurchaseCode @relation(fields: [purchaseCodeId], references: [id], onDelete: Cascade)
+
+  purchasedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, courseId, type]) // Prevent duplicate course purchases
+  @@unique([userId, contentId, type]) // Prevent duplicate video purchases
+  @@index([userId])
+  @@index([courseId])
+  @@index([contentId])
+  @@index([purchaseCodeId])
+}
+
+enum PurchaseType {
+  COURSE
+  VIDEO
 }
