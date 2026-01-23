@@ -134,57 +134,6 @@ export class CourseRepository {
     });
   }
 
-  async findBySlug(slug: string) {
-    return this.prisma.course.findUnique({
-      where: { slug },
-      include: {
-        instructor: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            title: true,
-            bio: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        sections: {
-          orderBy: { order: 'asc' },
-          include: {
-            contents: {
-              orderBy: { order: 'asc' },
-              select: {
-                id: true,
-                title: true,
-                type: true,
-                order: true,
-                duration: true,
-              },
-            },
-          },
-        },
-        reviews: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-      },
-    });
-  }
-
   async getRecommended(userId: string, take: number = 10) {
     // Get user's enrolled course categories
     const userEnrollments = await this.prisma.enrollment.findMany({

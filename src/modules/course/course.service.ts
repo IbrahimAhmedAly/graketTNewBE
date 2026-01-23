@@ -70,29 +70,6 @@ export class CourseService {
     };
   }
 
-  async findBySlug(slug: string) {
-    const course = await this.courseRepository.findBySlug(slug);
-
-    if (!course) {
-      throw new NotFoundException('الدورة غير موجودة');
-    }
-
-    const totalReviews = course.reviews.length;
-    const averageRating =
-      totalReviews > 0
-        ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-        : 0;
-
-    return {
-      message: 'تم جلب تفاصيل الدورة بنجاح',
-      data: {
-        ...course,
-        averageRating: Math.round(averageRating * 10) / 10,
-        totalReviews,
-      },
-    };
-  }
-
   async getRecommended(userId: string, limit: number = 10) {
     const courses = await this.courseRepository.getRecommended(userId, limit);
 

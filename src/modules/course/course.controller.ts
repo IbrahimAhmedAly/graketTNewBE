@@ -46,15 +46,6 @@ export class CourseController {
   }
 
   /**
-   * Get course by slug
-   * GET /course/slug/:slug
-   */
-  @Get('slug/:slug')
-  async findBySlug(@Param('slug') slug: string) {
-    return this.courseService.findBySlug(slug);
-  }
-
-  /**
    * Get course by ID with full details
    * GET /course/:id
    */
