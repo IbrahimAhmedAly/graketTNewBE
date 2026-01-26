@@ -4,8 +4,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtTokenService } from '../../modules/jwt/jwt-token.service';
-import { TokenType } from '../../modules/jwt/interfaces/jwt.interfaces';
+import { JwtTokenService } from '../../modules/jwt/jwt.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -25,13 +24,10 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const decoded = await this.jwtTokenService.verifyToken(
-        token,
-        TokenType.ACCESS,
-      );
+      const decoded = await this.jwtTokenService.verifyAccessToken(token);
 
       // Add user info to request
-      request.user = decoded.sub;
+      request.user = decoded;
       return true;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');

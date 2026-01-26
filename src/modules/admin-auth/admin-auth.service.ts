@@ -78,7 +78,9 @@ export class AdminAuthService {
 
     // TODO: Send OTP email
     // await this.emailService.sendAdminLoginOTP(email, otpCode);
-    console.log(`📧 Admin login OTP for ${email}: ${otpCode} (expires in 10 minutes)`);
+    console.log(
+      `📧 Admin login OTP for ${email}: ${otpCode} (expires in 10 minutes)`,
+    );
 
     return {
       message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
@@ -129,7 +131,9 @@ export class AdminAuthService {
         admin.id,
         OTPPurpose.ADMIN_LOGIN,
       );
-      throw new BadRequestException('انتهت صلاحية رمز التحقق. يرجى تسجيل الدخول مرة أخرى');
+      throw new BadRequestException(
+        'انتهت صلاحية رمز التحقق. يرجى تسجيل الدخول مرة أخرى',
+      );
     }
 
     // Check if code matches
@@ -197,12 +201,11 @@ export class AdminAuthService {
     );
 
     // Generate new verification token
-    const newVerificationToken =
-      this.jwtTokenService.generateVerificationToken(
-        admin.id,
-        OTPPurpose.ADMIN_LOGIN,
-        '10m',
-      );
+    const newVerificationToken = this.jwtTokenService.generateVerificationToken(
+      admin.id,
+      OTPPurpose.ADMIN_LOGIN,
+      '10m',
+    );
 
     // TODO: Send OTP email
     // await this.emailService.sendAdminLoginOTP(admin.email, otpCode);
