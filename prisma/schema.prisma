@@ -26,6 +26,8 @@ model User {
   reviews           Review[]
   purchases         Purchase[]
   usedPurchaseCodes PurchaseCode[]
+  basketItems       BasketItem[]
+  notifications     Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -142,6 +144,7 @@ model Course {
   reviews       Review[]
   purchaseCodes PurchaseCode[]
   purchases     Purchase[]
+  basketItems   BasketItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -480,4 +483,54 @@ model Purchase {
 enum PurchaseType {
   COURSE
   VIDEO
+}
+
+// ============================================
+// BASKET MODEL (Shopping cart for courses)
+// ============================================
+model BasketItem {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId]) // Prevent duplicate items in basket
+  @@index([userId])
+  @@index([courseId])
+}
+
+// ============================================
+// NOTIFICATION MODEL (User notifications)
+// ============================================
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        NotificationType
+  icon        String? // Icon identifier (star, alert, info, etc.)
+  title       String
+  description String?          @db.Text
+  data        Json? // Additional data (courseId, etc.)
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  PROMO // Promotional offers
+  REMINDER // Course reminders
+  NEW_COURSE // New courses available
+  ACHIEVEMENT // User achievements
+  SYSTEM // System notifications
 }

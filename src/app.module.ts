@@ -9,6 +9,13 @@ import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { InstructorModule } from './modules/instructor/instructor.module';
 import { CategoryModule } from './modules/category/category.module';
+import { CourseModule } from './modules/course/course.module';
+import { BasketModule } from './modules/basket/basket.module';
+import { PurchaseModule } from './modules/purchase/purchase.module';
+import { UserCourseModule } from './modules/user-course/user-course.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { ProgressModule } from './modules/progress/progress.module';
+import { QuizModule } from './modules/quiz/quiz.module';
 
 @Module({
   imports: [
@@ -20,6 +27,13 @@ import { CategoryModule } from './modules/category/category.module';
     AdminAuthModule,
     InstructorModule,
     CategoryModule,
+    CourseModule,
+    BasketModule,
+    PurchaseModule,
+    UserCourseModule,
+    NotificationModule,
+    ProgressModule,
+    QuizModule,
   ],
   controllers: [],
   providers: [],
