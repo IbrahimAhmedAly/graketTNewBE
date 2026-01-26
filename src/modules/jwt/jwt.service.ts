@@ -163,6 +163,32 @@ export class JwtTokenService {
   }
 
   /**
+   * Verify access token (for guards)
+   */
+  async verifyAccessToken(token: string): Promise<{ id: string; email: string }> {
+    try {
+      const payload = this.jwtService.verify(token, {
+        algorithms: ['RS256'],
+      });
+
+      if (payload.type !== TokenType.ACCESS) {
+        throw new Error('Invalid token type');
+      }
+
+      return payload.sub;
+    } catch (error) {
+      throw new Error('Invalid or expired access token');
+    }
+  }
+
+  /**
+   * Extract token from Authorization header
+   */
+  extractFromHeader(authHeader?: string): string | null {
+    return authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  }
+
+  /**
    * Get expiration date from expiry string
    */
   private getExpirationDate(expiry: string): Date {

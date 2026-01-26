@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { JwtTokenService } from './jwt-token.service';
+import { JwtTokenService } from './jwt.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Global()
