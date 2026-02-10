@@ -16,6 +16,14 @@ import { UserCourseModule } from './modules/user-course/user-course.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { QuizModule } from './modules/quiz/quiz.module';
+import { AdminCourseModule } from './modules/admin-course/admin-course.module';
+import { AdminSectionModule } from './modules/admin-section/admin-section.module';
+import { AdminContentModule } from './modules/admin-content/admin-content.module';
+import { AdminQuizModule } from './modules/admin-quiz/admin-quiz.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { AdminPurchaseCodeModule } from './modules/admin-purchase-code/admin-purchase-code.module';
+import { AdminUserModule } from './modules/admin-user/admin-user.module';
+import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 
 @Module({
   imports: [
@@ -34,6 +42,14 @@ import { QuizModule } from './modules/quiz/quiz.module';
     NotificationModule,
     ProgressModule,
     QuizModule,
+    AdminCourseModule,
+    AdminSectionModule,
+    AdminContentModule,
+    AdminQuizModule,
+    UploadModule,
+    AdminPurchaseCodeModule,
+    AdminUserModule,
+    AdminNotificationModule,
   ],
   controllers: [],
   providers: [],
