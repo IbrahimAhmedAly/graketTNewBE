@@ -57,11 +57,7 @@ export class InstructorService {
   /**
    * Get all instructors with pagination and search
    */
-  async findAll(
-    page: number = 1,
-    limit: number = 10,
-    search?: string,
-  ) {
+  async findAll(page: number = 1, limit: number = 10, search?: string) {
     const params = PaginationUtil.getPaginationParams(page, limit);
     const skip = PaginationUtil.getSkip(params.page, params.limit);
 

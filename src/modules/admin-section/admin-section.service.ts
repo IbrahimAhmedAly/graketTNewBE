@@ -28,17 +28,19 @@ export class AdminSectionService {
       throw new NotFoundException('Course not found');
     }
 
-    const sections = items.length === 1
-      ? [await this.repository.create(courseId, items[0])]
-      : await this.repository.createMany(courseId, items);
+    const sections =
+      items.length === 1
+        ? [await this.repository.create(courseId, items[0])]
+        : await this.repository.createMany(courseId, items);
 
     // Update course status automatically
     await CourseStatusUtil.updateCourseStatus(this.prisma, courseId);
 
     return {
-      message: items.length === 1
-        ? 'Section created successfully'
-        : `${sections.length} sections created successfully`,
+      message:
+        items.length === 1
+          ? 'Section created successfully'
+          : `${sections.length} sections created successfully`,
       data: items.length === 1 ? sections[0] : sections,
     };
   }
@@ -178,7 +180,9 @@ export class AdminSectionService {
       throw new BadRequestException('Section IDs array cannot be empty');
     }
 
-    const sections = await this.repository.reorderSections(reorderDto.sectionIds);
+    const sections = await this.repository.reorderSections(
+      reorderDto.sectionIds,
+    );
 
     return {
       message: 'Sections reordered successfully',

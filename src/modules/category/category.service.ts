@@ -15,9 +15,7 @@ import {
 } from './dto';
 
 // Utils
-import {
-  PaginationUtil,
-} from '../../utils/pagination/pagination.util';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 import { SlugUtil } from '../../utils/slug/slug.util';
 
 /**
@@ -69,11 +67,7 @@ export class CategoryService {
   /**
    * Get all categories with pagination and search
    */
-  async findAll(
-    page: number = 1,
-    limit: number = 10,
-    search?: string,
-  ) {
+  async findAll(page: number = 1, limit: number = 10, search?: string) {
     const params = PaginationUtil.getPaginationParams(page, limit);
     const skip = PaginationUtil.getSkip(params.page, params.limit);
 
