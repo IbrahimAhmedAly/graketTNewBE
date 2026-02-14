@@ -13,6 +13,7 @@ import {
 import { AdminContentService } from './admin-content.service';
 import { CreateContentDto, UpdateContentDto } from './dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
+import { ArrayOrSinglePipe } from '../../common/pipes/array-or-single.pipe';
 
 @Controller('admin')
 @UseGuards(AdminAuthGuard)
@@ -20,16 +21,17 @@ export class AdminContentController {
   constructor(private readonly adminContentService: AdminContentService) {}
 
   /**
-   * Create content in a section
+   * Create content(s) in a section
    * POST /admin/sections/:sectionId/content
+   * Accepts a single object or an array of objects
    */
   @Post('sections/:sectionId/content')
   @HttpCode(HttpStatus.CREATED)
   create(
     @Param('sectionId') sectionId: string,
-    @Body() createContentDto: CreateContentDto,
+    @Body(new ArrayOrSinglePipe(CreateContentDto)) items: CreateContentDto[],
   ) {
-    return this.adminContentService.create(sectionId, createContentDto);
+    return this.adminContentService.create(sectionId, items);
   }
 
   /**

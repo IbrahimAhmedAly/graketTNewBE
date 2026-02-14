@@ -7,8 +7,10 @@ import {
   IsUUID,
   MinLength,
   Min,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CourseStatus } from '@prisma/client';
 
 export class CreateCourseDto {
   @IsString()
@@ -48,6 +50,10 @@ export class CreateCourseDto {
   @Min(0)
   @IsOptional()
   discountPrice?: number;
+
+  @IsEnum(CourseStatus)
+  @IsOptional()
+  status?: CourseStatus;
 
   @IsBoolean()
   @IsOptional()

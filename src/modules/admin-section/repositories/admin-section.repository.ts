@@ -23,6 +23,27 @@ export class AdminSectionRepository {
     });
   }
 
+  async createMany(courseId: string, items: CreateSectionDto[]) {
+    return this.prisma.$transaction(
+      items.map((data) =>
+        this.prisma.section.create({
+          data: {
+            title: data.title,
+            order: data.order,
+            courseId,
+          },
+          include: {
+            _count: {
+              select: {
+                contents: true,
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
   async findById(id: string) {
     return this.prisma.section.findUnique({
       where: { id },

@@ -40,6 +40,15 @@ export class AdminCourseController {
   }
 
   /**
+   * Check if course can be published
+   * GET /admin/courses/:id/can-publish
+   */
+  @Get(':id/can-publish')
+  canPublish(@Param('id') id: string) {
+    return this.adminCourseService.canPublish(id);
+  }
+
+  /**
    * Get course details by ID
    * GET /admin/courses/:id
    */
@@ -65,5 +74,25 @@ export class AdminCourseController {
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string) {
     return this.adminCourseService.remove(id);
+  }
+
+  /**
+   * Publish course
+   * POST /admin/courses/:id/publish
+   */
+  @Post(':id/publish')
+  @HttpCode(HttpStatus.OK)
+  publish(@Param('id') id: string) {
+    return this.adminCourseService.publish(id);
+  }
+
+  /**
+   * Unpublish course
+   * POST /admin/courses/:id/unpublish
+   */
+  @Post(':id/unpublish')
+  @HttpCode(HttpStatus.OK)
+  unpublish(@Param('id') id: string) {
+    return this.adminCourseService.unpublish(id);
   }
 }

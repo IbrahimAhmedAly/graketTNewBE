@@ -37,6 +37,41 @@ export class AdminContentRepository {
     });
   }
 
+  async createMany(sectionId: string, items: CreateContentDto[]) {
+    return this.prisma.$transaction(
+      items.map((data) =>
+        this.prisma.content.create({
+          data: {
+            title: data.title,
+            type: data.type,
+            order: data.order,
+            duration: data.duration,
+            videoUrl: data.videoUrl,
+            pdfUrl: data.pdfUrl,
+            fileSize: data.fileSize,
+            sectionId,
+          },
+          include: {
+            section: {
+              select: {
+                id: true,
+                title: true,
+                courseId: true,
+              },
+            },
+            quiz: {
+              select: {
+                id: true,
+                timeLimit: true,
+                passingScore: true,
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
   async findById(id: string) {
     return this.prisma.content.findUnique({
       where: { id },

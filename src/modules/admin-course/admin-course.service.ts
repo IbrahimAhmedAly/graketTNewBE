@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import { AdminCourseRepository } from './repositories/admin-course.repository';
 import { CreateCourseDto, UpdateCourseDto, QueryCourseDto } from './dto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CourseStatusUtil } from '../../utils/course-status';
 
 @Injectable()
 export class AdminCourseService {
-  constructor(private readonly repository: AdminCourseRepository) {}
+  constructor(
+    private readonly repository: AdminCourseRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async create(createCourseDto: CreateCourseDto) {
     // Check if slug already exists
@@ -98,6 +103,55 @@ export class AdminCourseService {
 
     return {
       message: 'Course deleted successfully',
+    };
+  }
+
+  async publish(id: string) {
+    // Check if course exists
+    const exists = await this.repository.exists(id);
+    if (!exists) {
+      throw new NotFoundException('Course not found');
+    }
+
+    try {
+      await CourseStatusUtil.publishCourse(this.prisma, id);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      message: 'Course published successfully',
+    };
+  }
+
+  async unpublish(id: string) {
+    // Check if course exists
+    const exists = await this.repository.exists(id);
+    if (!exists) {
+      throw new NotFoundException('Course not found');
+    }
+
+    await CourseStatusUtil.unpublishCourse(this.prisma, id);
+
+    return {
+      message: 'Course unpublished successfully',
+    };
+  }
+
+  async canPublish(id: string) {
+    // Check if course exists
+    const exists = await this.repository.exists(id);
+    if (!exists) {
+      throw new NotFoundException('Course not found');
+    }
+
+    const result = await CourseStatusUtil.canPublish(this.prisma, id);
+
+    return {
+      message: result.canPublish
+        ? 'Course can be published'
+        : 'Course cannot be published',
+      data: result,
     };
   }
 }

@@ -13,6 +13,7 @@ import {
 import { AdminSectionService } from './admin-section.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
+import { ArrayOrSinglePipe } from '../../common/pipes/array-or-single.pipe';
 
 @Controller('admin')
 @UseGuards(AdminAuthGuard)
@@ -20,16 +21,17 @@ export class AdminSectionController {
   constructor(private readonly adminSectionService: AdminSectionService) {}
 
   /**
-   * Create a new section in a course
+   * Create section(s) in a course
    * POST /admin/courses/:courseId/sections
+   * Accepts a single object or an array of objects
    */
   @Post('courses/:courseId/sections')
   @HttpCode(HttpStatus.CREATED)
   create(
     @Param('courseId') courseId: string,
-    @Body() createSectionDto: CreateSectionDto,
+    @Body(new ArrayOrSinglePipe(CreateSectionDto)) items: CreateSectionDto[],
   ) {
-    return this.adminSectionService.create(courseId, createSectionDto);
+    return this.adminSectionService.create(courseId, items);
   }
 
   /**

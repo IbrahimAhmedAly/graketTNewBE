@@ -137,7 +137,8 @@ model Course {
   totalQuizzes  Int @default(0)
 
   // Status
-  isPublished Boolean @default(false)
+  status      CourseStatus @default(DRAFT)
+  isPublished Boolean      @default(false)
 
   sections      Section[]
   enrollments   Enrollment[]
@@ -211,6 +212,14 @@ enum ContentType {
   VIDEO
   PDF
   QUIZ
+}
+
+enum CourseStatus {
+  DRAFT          // Just created, no sections yet
+  SECTIONS_ADDED // Sections added
+  CONTENT_ADDED  // Content added
+  QUIZ_ADDED     // Quiz added (complete)
+  PUBLISHED      // Published to users
 }
 
 // ============================================

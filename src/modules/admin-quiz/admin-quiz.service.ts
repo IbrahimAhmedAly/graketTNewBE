@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import { AdminQuizRepository } from './repositories/admin-quiz.repository';
 import { CreateQuizDto, UpdateQuizDto, CreateQuestionDto, UpdateQuestionDto } from './dto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CourseStatusUtil } from '../../utils/course-status';
 
 @Injectable()
 export class AdminQuizService {
-  constructor(private readonly repository: AdminQuizRepository) {}
+  constructor(
+    private readonly repository: AdminQuizRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Quiz operations
   async createQuiz(contentId: string, createQuizDto: CreateQuizDto) {
@@ -70,23 +75,35 @@ export class AdminQuizService {
   }
 
   // Question operations
-  async createQuestion(quizId: string, createQuestionDto: CreateQuestionDto) {
+  async createQuestion(quizId: string, items: CreateQuestionDto[]) {
     // Check if quiz exists
-    const quizExists = await this.repository.quizExists(quizId);
-    if (!quizExists) {
+    const quiz = await this.repository.findQuizById(quizId);
+    if (!quiz) {
       throw new NotFoundException('Quiz not found');
     }
 
-    // Validate correctOptionIndex
-    if (createQuestionDto.correctOptionIndex >= createQuestionDto.options.length) {
-      throw new BadRequestException('Correct option index is out of bounds');
+    // Validate correctOptionIndex for each question
+    for (const item of items) {
+      if (item.correctOptionIndex >= item.options.length) {
+        throw new BadRequestException(
+          `Correct option index is out of bounds for question: "${item.questionText}"`,
+        );
+      }
     }
 
-    const question = await this.repository.createQuestion(quizId, createQuestionDto);
+    const questions = items.length === 1
+      ? [await this.repository.createQuestion(quizId, items[0])]
+      : await this.repository.createManyQuestions(quizId, items);
+
+    // Update course status automatically
+    const courseId = quiz.content.section.course.id;
+    await CourseStatusUtil.updateCourseStatus(this.prisma, courseId);
 
     return {
-      message: 'Question created successfully',
-      data: question,
+      message: items.length === 1
+        ? 'Question created successfully'
+        : `${questions.length} questions created successfully`,
+      data: items.length === 1 ? questions[0] : questions,
     };
   }
 
@@ -129,12 +146,22 @@ export class AdminQuizService {
 
   async deleteQuestion(id: string) {
     // Check if question exists
-    const exists = await this.repository.questionExists(id);
-    if (!exists) {
+    const question = await this.repository.findQuestionById(id);
+    if (!question) {
       throw new NotFoundException('Question not found');
     }
 
+    // Get quiz to find course
+    const quiz = await this.repository.findQuizById(question.quiz.id);
+    if (!quiz) {
+      throw new NotFoundException('Quiz not found');
+    }
+
     await this.repository.deleteQuestion(id);
+
+    // Update course status after deletion
+    const courseId = quiz.content.section.course.id;
+    await CourseStatusUtil.updateCourseStatus(this.prisma, courseId);
 
     return {
       message: 'Question deleted successfully',

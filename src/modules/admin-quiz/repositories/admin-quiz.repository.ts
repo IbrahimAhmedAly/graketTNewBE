@@ -138,6 +138,38 @@ export class AdminQuizRepository {
     });
   }
 
+  async createManyQuestions(quizId: string, items: CreateQuestionDto[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const data of items) {
+        const question = await tx.question.create({
+          data: {
+            quizId,
+            questionText: data.questionText,
+            order: data.order,
+            points: data.points,
+          },
+        });
+
+        const options = await Promise.all(
+          data.options.map((option, index) =>
+            tx.option.create({
+              data: {
+                questionId: question.id,
+                text: option.text,
+                order: option.order,
+                isCorrect: index === data.correctOptionIndex,
+              },
+            }),
+          ),
+        );
+
+        results.push({ ...question, options });
+      }
+      return results;
+    });
+  }
+
   async findQuestionById(id: string) {
     return this.prisma.question.findUnique({
       where: { id },
