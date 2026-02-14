@@ -29,7 +29,14 @@ export class AdminUserRepository {
   }
 
   async findAll(query: QueryUserDto) {
-    const { page = 1, limit = 10, search, status, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      status,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {};
@@ -48,7 +55,7 @@ export class AdminUserRepository {
       where.status = status;
     }
 
-    const [users, total] = await Promise.all([
+    return Promise.all([
       this.prisma.user.findMany({
         where,
         skip,
@@ -76,14 +83,6 @@ export class AdminUserRepository {
       }),
       this.prisma.user.count({ where }),
     ]);
-
-    return {
-      users,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findById(id: string) {

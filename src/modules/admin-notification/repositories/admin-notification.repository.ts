@@ -7,7 +7,13 @@ import { Prisma } from '@prisma/client';
 export class AdminNotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createNotification(userId: string, data: Omit<SendNotificationDto, 'target' | 'userIds' | 'courseId' | 'userStatus'>) {
+  async createNotification(
+    userId: string,
+    data: Omit<
+      SendNotificationDto,
+      'target' | 'userIds' | 'courseId' | 'userStatus'
+    >,
+  ) {
     return this.prisma.notification.create({
       data: {
         userId,
@@ -22,7 +28,10 @@ export class AdminNotificationRepository {
 
   async createBulkNotifications(
     userIds: string[],
-    data: Omit<SendNotificationDto, 'target' | 'userIds' | 'courseId' | 'userStatus'>,
+    data: Omit<
+      SendNotificationDto,
+      'target' | 'userIds' | 'courseId' | 'userStatus'
+    >,
   ) {
     const notifications = userIds.map((userId) => ({
       userId,
@@ -90,7 +99,7 @@ export class AdminNotificationRepository {
       where.isRead = isRead;
     }
 
-    const [notifications, total] = await Promise.all([
+    return Promise.all([
       this.prisma.notification.findMany({
         where,
         skip,
@@ -110,14 +119,6 @@ export class AdminNotificationRepository {
       }),
       this.prisma.notification.count({ where }),
     ]);
-
-    return {
-      notifications,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findById(id: string) {
@@ -173,10 +174,13 @@ export class AdminNotificationRepository {
       total,
       read,
       unread,
-      byType: byType.reduce((acc, item) => {
-        acc[item.type] = item._count.type;
-        return acc;
-      }, {} as Record<string, number>),
+      byType: byType.reduce(
+        (acc, item) => {
+          acc[item.type] = item._count.type;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
     };
   }
 }

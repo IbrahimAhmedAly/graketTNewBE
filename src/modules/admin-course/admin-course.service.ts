@@ -8,6 +8,7 @@ import { AdminCourseRepository } from './repositories/admin-course.repository';
 import { CreateCourseDto, UpdateCourseDto, QueryCourseDto } from './dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseStatusUtil } from '../../utils/course-status';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 
 @Injectable()
 export class AdminCourseService {
@@ -29,7 +30,9 @@ export class AdminCourseService {
       createCourseDto.price &&
       createCourseDto.discountPrice >= createCourseDto.price
     ) {
-      throw new BadRequestException('Discount price must be less than regular price');
+      throw new BadRequestException(
+        'Discount price must be less than regular price',
+      );
     }
 
     const course = await this.repository.create(createCourseDto);
@@ -41,11 +44,16 @@ export class AdminCourseService {
   }
 
   async findAll(query: QueryCourseDto) {
-    const result = await this.repository.findAll(query);
+    const { page = 1, limit = 10 } = query;
+    const params = PaginationUtil.getPaginationParams(page, limit);
+
+    const [courses, total] = await this.repository.findAll(query);
+
+    const paginatedResult = PaginationUtil.paginate(courses, total, params);
 
     return {
       message: 'Courses retrieved successfully',
-      data: result,
+      data: paginatedResult,
     };
   }
 
@@ -71,16 +79,24 @@ export class AdminCourseService {
 
     // Check slug uniqueness if updating slug
     if (updateCourseDto.slug) {
-      const slugExists = await this.repository.slugExists(updateCourseDto.slug, id);
+      const slugExists = await this.repository.slugExists(
+        updateCourseDto.slug,
+        id,
+      );
       if (slugExists) {
         throw new ConflictException('Course with this slug already exists');
       }
     }
 
     // Validate discount price
-    if (updateCourseDto.discountPrice !== undefined && updateCourseDto.price !== undefined) {
+    if (
+      updateCourseDto.discountPrice !== undefined &&
+      updateCourseDto.price !== undefined
+    ) {
       if (updateCourseDto.discountPrice >= updateCourseDto.price) {
-        throw new BadRequestException('Discount price must be less than regular price');
+        throw new BadRequestException(
+          'Discount price must be less than regular price',
+        );
       }
     }
 

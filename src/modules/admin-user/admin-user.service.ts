@@ -6,6 +6,7 @@ import {
 import { AdminUserRepository } from './repositories/admin-user.repository';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
 import * as bcrypt from 'bcrypt';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 
 @Injectable()
 export class AdminUserService {
@@ -19,7 +20,9 @@ export class AdminUserService {
     }
 
     // Check if serial already exists
-    const serialExists = await this.repository.serialExists(createUserDto.serial);
+    const serialExists = await this.repository.serialExists(
+      createUserDto.serial,
+    );
     if (serialExists) {
       throw new ConflictException('Serial already exists');
     }
@@ -36,11 +39,16 @@ export class AdminUserService {
   }
 
   async findAll(query: QueryUserDto) {
-    const result = await this.repository.findAll(query);
+    const { page = 1, limit = 10 } = query;
+    const params = PaginationUtil.getPaginationParams(page, limit);
+
+    const [users, total] = await this.repository.findAll(query);
+
+    const paginatedResult = PaginationUtil.paginate(users, total, params);
 
     return {
       message: 'Users retrieved successfully',
-      data: result,
+      data: paginatedResult,
     };
   }
 
@@ -66,7 +74,10 @@ export class AdminUserService {
 
     // Check email uniqueness if updating email
     if (updateUserDto.email) {
-      const emailExists = await this.repository.emailExists(updateUserDto.email, id);
+      const emailExists = await this.repository.emailExists(
+        updateUserDto.email,
+        id,
+      );
       if (emailExists) {
         throw new ConflictException('Email already exists');
       }
@@ -74,7 +85,10 @@ export class AdminUserService {
 
     // Check serial uniqueness if updating serial
     if (updateUserDto.serial) {
-      const serialExists = await this.repository.serialExists(updateUserDto.serial, id);
+      const serialExists = await this.repository.serialExists(
+        updateUserDto.serial,
+        id,
+      );
       if (serialExists) {
         throw new ConflictException('Serial already exists');
       }
@@ -86,7 +100,11 @@ export class AdminUserService {
       hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
     }
 
-    const user = await this.repository.update(id, updateUserDto, hashedPassword);
+    const user = await this.repository.update(
+      id,
+      updateUserDto,
+      hashedPassword,
+    );
 
     return {
       message: 'User updated successfully',

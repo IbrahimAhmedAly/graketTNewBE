@@ -7,6 +7,7 @@ import {
 import { AdminPurchaseCodeRepository } from './repositories/admin-purchase-code.repository';
 import { GenerateCodeDto, UpdateCodeDto, QueryCodeDto } from './dto';
 import { PurchaseType } from '@prisma/client';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 
 @Injectable()
 export class AdminPurchaseCodeService {
@@ -50,24 +51,34 @@ export class AdminPurchaseCodeService {
 
   async generateCode(adminId: string, generateCodeDto: GenerateCodeDto) {
     // Validate that either courseId or contentId is provided based on type
-    if (generateCodeDto.type === PurchaseType.COURSE && !generateCodeDto.courseId) {
+    if (
+      generateCodeDto.type === PurchaseType.COURSE &&
+      !generateCodeDto.courseId
+    ) {
       throw new BadRequestException('courseId is required for COURSE type');
     }
 
-    if (generateCodeDto.type === PurchaseType.VIDEO && !generateCodeDto.contentId) {
+    if (
+      generateCodeDto.type === PurchaseType.VIDEO &&
+      !generateCodeDto.contentId
+    ) {
       throw new BadRequestException('contentId is required for VIDEO type');
     }
 
     // Validate that the course or content exists
     if (generateCodeDto.courseId) {
-      const courseExists = await this.repository.courseExists(generateCodeDto.courseId);
+      const courseExists = await this.repository.courseExists(
+        generateCodeDto.courseId,
+      );
       if (!courseExists) {
         throw new NotFoundException('Course not found');
       }
     }
 
     if (generateCodeDto.contentId) {
-      const contentExists = await this.repository.contentExists(generateCodeDto.contentId);
+      const contentExists = await this.repository.contentExists(
+        generateCodeDto.contentId,
+      );
       if (!contentExists) {
         throw new NotFoundException('Content not found');
       }
@@ -86,7 +97,11 @@ export class AdminPurchaseCodeService {
     // Generate single code
     if (quantity === 1) {
       const code = await this.generateUniqueCode(generateCodeDto.type);
-      const purchaseCode = await this.repository.generateCode(adminId, generateCodeDto, code);
+      const purchaseCode = await this.repository.generateCode(
+        adminId,
+        generateCodeDto,
+        code,
+      );
 
       return {
         message: 'Purchase code generated successfully',
@@ -98,7 +113,11 @@ export class AdminPurchaseCodeService {
     const codes = [];
     for (let i = 0; i < quantity; i++) {
       const code = await this.generateUniqueCode(generateCodeDto.type);
-      const purchaseCode = await this.repository.generateCode(adminId, generateCodeDto, code);
+      const purchaseCode = await this.repository.generateCode(
+        adminId,
+        generateCodeDto,
+        code,
+      );
       codes.push(purchaseCode);
     }
 
@@ -109,11 +128,14 @@ export class AdminPurchaseCodeService {
   }
 
   async findAll(query: QueryCodeDto) {
-    const result = await this.repository.findAll(query);
+    const { page = 1, limit = 10 } = query;
+    const params = PaginationUtil.getPaginationParams(page, limit);
+
+    const [codes, total] = await this.repository.findAll(query);
 
     // Add status flags to each code
     const now = new Date();
-    const codesWithStatus = result.codes.map((code) => {
+    const codesWithStatus = codes.map((code) => {
       const isExpired = code.expiresAt && new Date(code.expiresAt) < now;
       const isActive = !code.isUsed && !isExpired;
       const remainingUses = code.maxUses - code.usedCount;
@@ -126,12 +148,15 @@ export class AdminPurchaseCodeService {
       };
     });
 
+    const paginatedResult = PaginationUtil.paginate(
+      codesWithStatus,
+      total,
+      params,
+    );
+
     return {
       message: 'Purchase codes retrieved successfully',
-      data: {
-        ...result,
-        codes: codesWithStatus,
-      },
+      data: paginatedResult,
     };
   }
 
@@ -192,7 +217,9 @@ export class AdminPurchaseCodeService {
     // Check if code has been used
     const code = await this.repository.findById(id);
     if (code && code.usedCount > 0) {
-      throw new BadRequestException('Cannot delete a purchase code that has been used');
+      throw new BadRequestException(
+        'Cannot delete a purchase code that has been used',
+      );
     }
 
     await this.repository.delete(id);

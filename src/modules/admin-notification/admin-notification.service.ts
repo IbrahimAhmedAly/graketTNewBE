@@ -4,7 +4,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { AdminNotificationRepository } from './repositories/admin-notification.repository';
-import { SendNotificationDto, QueryNotificationDto, NotificationTarget } from './dto';
+import {
+  SendNotificationDto,
+  QueryNotificationDto,
+  NotificationTarget,
+} from './dto';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 
 @Injectable()
 export class AdminNotificationService {
@@ -21,19 +26,28 @@ export class AdminNotificationService {
         break;
 
       case NotificationTarget.SPECIFIC_USERS:
-        if (!sendNotificationDto.userIds || sendNotificationDto.userIds.length === 0) {
-          throw new BadRequestException('userIds are required for SPECIFIC_USERS target');
+        if (
+          !sendNotificationDto.userIds ||
+          sendNotificationDto.userIds.length === 0
+        ) {
+          throw new BadRequestException(
+            'userIds are required for SPECIFIC_USERS target',
+          );
         }
         userIds = sendNotificationDto.userIds;
         break;
 
       case NotificationTarget.COURSE_ENROLLED:
         if (!sendNotificationDto.courseId) {
-          throw new BadRequestException('courseId is required for COURSE_ENROLLED target');
+          throw new BadRequestException(
+            'courseId is required for COURSE_ENROLLED target',
+          );
         }
 
         // Check if course exists
-        const courseExists = await this.repository.courseExists(sendNotificationDto.courseId);
+        const courseExists = await this.repository.courseExists(
+          sendNotificationDto.courseId,
+        );
         if (!courseExists) {
           throw new NotFoundException('Course not found');
         }
@@ -46,9 +60,13 @@ export class AdminNotificationService {
 
       case NotificationTarget.STATUS_BASED:
         if (!sendNotificationDto.userStatus) {
-          throw new BadRequestException('userStatus is required for STATUS_BASED target');
+          throw new BadRequestException(
+            'userStatus is required for STATUS_BASED target',
+          );
         }
-        const statusUsers = await this.repository.getUsersByStatus(sendNotificationDto.userStatus);
+        const statusUsers = await this.repository.getUsersByStatus(
+          sendNotificationDto.userStatus,
+        );
         userIds = statusUsers.map((u) => u.id);
         break;
 
@@ -84,11 +102,20 @@ export class AdminNotificationService {
   }
 
   async findAll(query: QueryNotificationDto) {
-    const result = await this.repository.findAll(query);
+    const { page = 1, limit = 10 } = query;
+    const params = PaginationUtil.getPaginationParams(page, limit);
+
+    const [notifications, total] = await this.repository.findAll(query);
+
+    const paginatedResult = PaginationUtil.paginate(
+      notifications,
+      total,
+      params,
+    );
 
     return {
       message: 'Notifications retrieved successfully',
-      data: result,
+      data: paginatedResult,
     };
   }
 

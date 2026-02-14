@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { GenerateCodeDto, UpdateCodeDto, QueryCodeDto, CodeStatus } from '../dto';
+import {
+  GenerateCodeDto,
+  UpdateCodeDto,
+  QueryCodeDto,
+  CodeStatus,
+} from '../dto';
 import { Prisma, PurchaseType } from '@prisma/client';
 
 @Injectable()
@@ -46,7 +51,16 @@ export class AdminPurchaseCodeRepository {
   }
 
   async findAll(query: QueryCodeDto) {
-    const { page = 1, limit = 10, search, type, courseId, contentId, status, isUsed } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      type,
+      courseId,
+      contentId,
+      status,
+      isUsed,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.PurchaseCodeWhereInput = {};
@@ -97,15 +111,12 @@ export class AdminPurchaseCodeRepository {
           break;
         case CodeStatus.ACTIVE:
           where.isUsed = false;
-          where.OR = [
-            { expiresAt: null },
-            { expiresAt: { gte: now } },
-          ];
+          where.OR = [{ expiresAt: null }, { expiresAt: { gte: now } }];
           break;
       }
     }
 
-    const [codes, total] = await Promise.all([
+    return Promise.all([
       this.prisma.purchaseCode.findMany({
         where,
         skip,
@@ -152,14 +163,6 @@ export class AdminPurchaseCodeRepository {
       }),
       this.prisma.purchaseCode.count({ where }),
     ]);
-
-    return {
-      codes,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findById(id: string) {
@@ -227,7 +230,9 @@ export class AdminPurchaseCodeRepository {
       where: { id },
       data: {
         ...(data.maxUses !== undefined && { maxUses: data.maxUses }),
-        ...(data.expiresAt !== undefined && { expiresAt: new Date(data.expiresAt) }),
+        ...(data.expiresAt !== undefined && {
+          expiresAt: new Date(data.expiresAt),
+        }),
         ...(data.isUsed !== undefined && { isUsed: data.isUsed }),
       },
       include: {
@@ -300,10 +305,7 @@ export class AdminPurchaseCodeRepository {
       this.prisma.purchaseCode.count({
         where: {
           isUsed: false,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gte: now } },
-          ],
+          OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
         },
       }),
     ]);

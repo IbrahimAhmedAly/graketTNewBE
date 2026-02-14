@@ -44,7 +44,18 @@ export class AdminCourseRepository {
   }
 
   async findAll(query: QueryCourseDto) {
-    const { page = 1, limit = 10, search, categoryId, instructorId, isPublished, sortBy = 'createdAt', sortOrder = 'desc', minPrice, maxPrice } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      categoryId,
+      instructorId,
+      isPublished,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      minPrice,
+      maxPrice,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.CourseWhereInput = {};
@@ -78,7 +89,7 @@ export class AdminCourseRepository {
       }
     }
 
-    const [courses, total] = await Promise.all([
+    return Promise.all([
       this.prisma.course.findMany({
         where,
         skip,
@@ -113,14 +124,6 @@ export class AdminCourseRepository {
       }),
       this.prisma.course.count({ where }),
     ]);
-
-    return {
-      courses,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findById(id: string) {
@@ -186,11 +189,21 @@ export class AdminCourseRepository {
         ...(data.instructorId && { instructorId: data.instructorId }),
         ...(data.categoryId && { categoryId: data.categoryId }),
         ...(data.price !== undefined && { price: data.price }),
-        ...(data.discountPrice !== undefined && { discountPrice: data.discountPrice }),
-        ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
-        ...(data.totalDuration !== undefined && { totalDuration: data.totalDuration }),
-        ...(data.totalVideos !== undefined && { totalVideos: data.totalVideos }),
-        ...(data.totalQuizzes !== undefined && { totalQuizzes: data.totalQuizzes }),
+        ...(data.discountPrice !== undefined && {
+          discountPrice: data.discountPrice,
+        }),
+        ...(data.isPublished !== undefined && {
+          isPublished: data.isPublished,
+        }),
+        ...(data.totalDuration !== undefined && {
+          totalDuration: data.totalDuration,
+        }),
+        ...(data.totalVideos !== undefined && {
+          totalVideos: data.totalVideos,
+        }),
+        ...(data.totalQuizzes !== undefined && {
+          totalQuizzes: data.totalQuizzes,
+        }),
       },
       include: {
         instructor: {
