@@ -24,6 +24,7 @@ import { AdminPurchaseCodeModule } from './modules/admin-purchase-code/admin-pur
 import { AdminUserModule } from './modules/admin-user/admin-user.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { AdminSelectListModule } from './modules/admin-select-list/admin-select-list.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { UploadModule } from './modules/upload/upload.module';
     AdminUserModule,
     AdminNotificationModule,
     UploadModule,
+    AdminSelectListModule,
   ],
   controllers: [],
   providers: [],
