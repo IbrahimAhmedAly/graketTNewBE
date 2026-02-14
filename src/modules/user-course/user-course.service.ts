@@ -48,7 +48,7 @@ export class UserCourseService {
 
     return {
       message: 'تم جلب دوراتي بنجاح',
-      data: PaginationUtil.paginate(transformedEnrollments, totalItems, {
+      ...PaginationUtil.paginate(transformedEnrollments, totalItems, {
         page,
         limit,
       }),

@@ -16,10 +16,7 @@ import {
 } from './dto';
 
 // Utils
-import {
-  PaginationUtil,
-  PaginatedResult,
-} from '../../utils/pagination/pagination.util';
+import { PaginationUtil } from '../../utils/pagination/pagination.util';
 
 /**
  * Instructor Service
@@ -64,10 +61,7 @@ export class InstructorService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-  ): Promise<{
-    message: string;
-    data: PaginatedResult<InstructorResponseDto>;
-  }> {
+  ) {
     const params = PaginationUtil.getPaginationParams(page, limit);
     const skip = PaginationUtil.getSkip(params.page, params.limit);
 
@@ -89,7 +83,7 @@ export class InstructorService {
 
     return {
       message: 'تم جلب قائمة المدرسين بنجاح',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 

@@ -40,7 +40,7 @@ export class CourseService {
 
     return {
       message: 'تم جلب الدورات بنجاح',
-      data: PaginationUtil.paginate(transformedCourses, totalItems, {
+      ...PaginationUtil.paginate(transformedCourses, totalItems, {
         page,
         limit,
       }),

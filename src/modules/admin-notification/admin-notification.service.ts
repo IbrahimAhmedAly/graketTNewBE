@@ -115,7 +115,7 @@ export class AdminNotificationService {
 
     return {
       message: 'Notifications retrieved successfully',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 

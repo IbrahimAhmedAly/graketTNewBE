@@ -48,7 +48,7 @@ export class AdminUserService {
 
     return {
       message: 'Users retrieved successfully',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 

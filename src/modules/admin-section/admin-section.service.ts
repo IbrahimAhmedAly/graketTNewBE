@@ -4,7 +4,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { AdminSectionRepository } from './repositories/admin-section.repository';
-import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto';
+import {
+  CreateSectionDto,
+  UpdateSectionDto,
+  ReorderSectionsDto,
+  BulkUpdateSectionsDto,
+  BulkDeleteSectionsDto,
+} from './dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseStatusUtil } from '../../utils/course-status';
 
@@ -65,6 +71,49 @@ export class AdminSectionService {
     };
   }
 
+  async bulkUpdate(bulkUpdateDto: BulkUpdateSectionsDto) {
+    if (!bulkUpdateDto.sections || bulkUpdateDto.sections.length === 0) {
+      throw new BadRequestException('Sections array cannot be empty');
+    }
+
+    // Verify all sections exist
+    const sectionIds = bulkUpdateDto.sections.map((s) => s.id);
+    const existingSections =
+      await this.repository.findManySectionsByIds(sectionIds);
+
+    if (existingSections.length !== sectionIds.length) {
+      const foundIds = existingSections.map((s) => s.id);
+      const notFoundIds = sectionIds.filter((id) => !foundIds.includes(id));
+      throw new NotFoundException(
+        `Sections not found: ${notFoundIds.join(', ')}`,
+      );
+    }
+
+    // Prepare updates
+    const updates = bulkUpdateDto.sections.map((section) => ({
+      id: section.id,
+      data: {
+        title: section.title,
+        order: section.order,
+      },
+    }));
+
+    const updatedSections = await this.repository.updateMany(updates);
+
+    // Get affected course IDs and update their statuses
+    const courseIds = await this.repository.findCourseIdsBySections(sectionIds);
+    await Promise.all(
+      courseIds.map((courseId) =>
+        CourseStatusUtil.updateCourseStatus(this.prisma, courseId),
+      ),
+    );
+
+    return {
+      message: `${updatedSections.length} sections updated successfully`,
+      data: updatedSections,
+    };
+  }
+
   async remove(id: string) {
     // Check if section exists
     const section = await this.repository.findById(id);
@@ -80,6 +129,47 @@ export class AdminSectionService {
 
     return {
       message: 'Section deleted successfully',
+    };
+  }
+
+  async bulkDelete(bulkDeleteDto: BulkDeleteSectionsDto) {
+    if (!bulkDeleteDto.sectionIds || bulkDeleteDto.sectionIds.length === 0) {
+      throw new BadRequestException('Section IDs array cannot be empty');
+    }
+
+    // Verify all sections exist and get their course IDs
+    const existingSections = await this.repository.findManySectionsByIds(
+      bulkDeleteDto.sectionIds,
+    );
+
+    if (existingSections.length !== bulkDeleteDto.sectionIds.length) {
+      const foundIds = existingSections.map((s) => s.id);
+      const notFoundIds = bulkDeleteDto.sectionIds.filter(
+        (id) => !foundIds.includes(id),
+      );
+      throw new NotFoundException(
+        `Sections not found: ${notFoundIds.join(', ')}`,
+      );
+    }
+
+    // Get affected course IDs before deletion
+    const courseIds = await this.repository.findCourseIdsBySections(
+      bulkDeleteDto.sectionIds,
+    );
+
+    // Delete sections
+    const result = await this.repository.deleteMany(bulkDeleteDto.sectionIds);
+
+    // Update course statuses
+    await Promise.all(
+      courseIds.map((courseId) =>
+        CourseStatusUtil.updateCourseStatus(this.prisma, courseId),
+      ),
+    );
+
+    return {
+      message: `${result.count} sections deleted successfully`,
+      deletedCount: result.count,
     };
   }
 

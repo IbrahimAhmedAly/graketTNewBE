@@ -53,7 +53,7 @@ export class AdminCourseService {
 
     return {
       message: 'Courses retrieved successfully',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 

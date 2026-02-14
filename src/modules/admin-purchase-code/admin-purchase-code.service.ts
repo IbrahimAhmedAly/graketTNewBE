@@ -156,7 +156,7 @@ export class AdminPurchaseCodeService {
 
     return {
       message: 'Purchase codes retrieved successfully',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 

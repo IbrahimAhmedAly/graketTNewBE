@@ -92,9 +92,40 @@ export class AdminSectionRepository {
     });
   }
 
+  async updateMany(sections: Array<{ id: string; data: UpdateSectionDto }>) {
+    const updates = sections.map(({ id, data }) =>
+      this.prisma.section.update({
+        where: { id },
+        data: {
+          ...(data.title && { title: data.title }),
+          ...(data.order !== undefined && { order: data.order }),
+        },
+        include: {
+          _count: {
+            select: {
+              contents: true,
+            },
+          },
+        },
+      }),
+    );
+
+    return this.prisma.$transaction(updates);
+  }
+
   async delete(id: string) {
     return this.prisma.section.delete({
       where: { id },
+    });
+  }
+
+  async deleteMany(ids: string[]) {
+    return this.prisma.section.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
     });
   }
 
@@ -122,5 +153,39 @@ export class AdminSectionRepository {
     );
 
     return this.prisma.$transaction(updates);
+  }
+
+  async findCourseIdsBySections(sectionIds: string[]): Promise<string[]> {
+    const sections = await this.prisma.section.findMany({
+      where: {
+        id: {
+          in: sectionIds,
+        },
+      },
+      select: {
+        courseId: true,
+      },
+    });
+
+    // Return unique course IDs
+    return [...new Set(sections.map((s) => s.courseId))];
+  }
+
+  async findManySectionsByIds(ids: string[]) {
+    return this.prisma.section.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
   }
 }

@@ -17,7 +17,6 @@ import {
 // Utils
 import {
   PaginationUtil,
-  PaginatedResult,
 } from '../../utils/pagination/pagination.util';
 import { SlugUtil } from '../../utils/slug/slug.util';
 
@@ -74,10 +73,7 @@ export class CategoryService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-  ): Promise<{
-    message: string;
-    data: PaginatedResult<CategoryResponseDto>;
-  }> {
+  ) {
     const params = PaginationUtil.getPaginationParams(page, limit);
     const skip = PaginationUtil.getSkip(params.page, params.limit);
 
@@ -99,7 +95,7 @@ export class CategoryService {
 
     return {
       message: 'تم جلب قائمة التصنيفات بنجاح',
-      data: paginatedResult,
+      ...paginatedResult,
     };
   }
 
