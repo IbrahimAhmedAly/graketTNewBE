@@ -10,8 +10,10 @@ import {
   UpdateQuizDto,
   CreateQuestionDto,
   UpdateQuestionDto,
+  BulkCreateQuizzesDto,
   BulkUpdateQuizzesDto,
   BulkDeleteQuizzesDto,
+  BulkCreateQuestionsDto,
   BulkUpdateQuestionsDto,
   BulkDeleteQuestionsDto,
 } from './dto';
@@ -83,6 +85,54 @@ export class AdminQuizService {
     };
   }
 
+  async bulkCreateQuizzes(bulkCreateQuizzesDto: BulkCreateQuizzesDto) {
+    const { quizzes } = bulkCreateQuizzesDto;
+
+    if (quizzes.length === 0) {
+      throw new BadRequestException('Quizzes array cannot be empty');
+    }
+
+    // Extract unique content IDs
+    const contentIds = [...new Set(quizzes.map((q) => q.contentId))];
+
+    // Validate all contents exist
+    const existingContents =
+      await this.repository.findManyContentsByIds(contentIds);
+    if (existingContents.length !== contentIds.length) {
+      const foundIds = existingContents.map((c) => c.id);
+      const notFoundIds = contentIds.filter((id) => !foundIds.includes(id));
+      throw new NotFoundException(
+        `Contents not found: ${notFoundIds.join(', ')}`,
+      );
+    }
+
+    // Create quizzes
+    const quizData = quizzes.map((quiz) => ({
+      contentId: quiz.contentId,
+      data: {
+        timeLimit: quiz.timeLimit,
+        passingScore: quiz.passingScore,
+      },
+    }));
+
+    const createdQuizzes = await this.repository.createManyQuizzes(quizData);
+
+    // Update affected course statuses
+    const courseIds = [
+      ...new Set(existingContents.map((c) => c.section.courseId)),
+    ];
+    await Promise.all(
+      courseIds.map((courseId) =>
+        CourseStatusUtil.updateCourseStatus(this.prisma, courseId),
+      ),
+    );
+
+    return {
+      message: `${createdQuizzes.length} quizzes created successfully`,
+      data: createdQuizzes,
+    };
+  }
+
   // Question operations
   async createQuestion(quizId: string, items: CreateQuestionDto[]) {
     // Check if quiz exists
@@ -115,6 +165,66 @@ export class AdminQuizService {
           ? 'Question created successfully'
           : `${questions.length} questions created successfully`,
       data: items.length === 1 ? questions[0] : questions,
+    };
+  }
+
+  async bulkCreateQuestions(bulkCreateQuestionsDto: BulkCreateQuestionsDto) {
+    const { questions } = bulkCreateQuestionsDto;
+
+    if (questions.length === 0) {
+      throw new BadRequestException('Questions array cannot be empty');
+    }
+
+    // Validate correctOptionIndex for each question
+    for (const question of questions) {
+      if (question.correctOptionIndex >= question.options.length) {
+        throw new BadRequestException(
+          `Correct option index is out of bounds for question: "${question.questionText}"`,
+        );
+      }
+    }
+
+    // Extract unique quiz IDs
+    const quizIds = [...new Set(questions.map((q) => q.quizId))];
+
+    // Validate all quizzes exist
+    const existingQuizzes = await this.repository.findManyQuizzesByIds(quizIds);
+    if (existingQuizzes.length !== quizIds.length) {
+      const foundIds = existingQuizzes.map((q) => q.id);
+      const notFoundIds = quizIds.filter((id) => !foundIds.includes(id));
+      throw new NotFoundException(
+        `Quizzes not found: ${notFoundIds.join(', ')}`,
+      );
+    }
+
+    // Create questions
+    const questionData = questions.map((question) => ({
+      quizId: question.quizId,
+      data: {
+        questionText: question.questionText,
+        order: question.order,
+        points: question.points,
+        correctOptionIndex: question.correctOptionIndex,
+        options: question.options,
+      },
+    }));
+
+    const createdQuestions =
+      await this.repository.createManyQuestionsAcrossQuizzes(questionData);
+
+    // Update affected course statuses
+    const courseIds = await this.repository.findCourseIdsByQuestions(
+      createdQuestions.map((q) => q.id),
+    );
+    await Promise.all(
+      courseIds.map((courseId) =>
+        CourseStatusUtil.updateCourseStatus(this.prisma, courseId),
+      ),
+    );
+
+    return {
+      message: `${createdQuestions.length} questions created successfully`,
+      data: createdQuestions,
     };
   }
 

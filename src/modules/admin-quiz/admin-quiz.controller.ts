@@ -13,17 +13,16 @@ import {
 } from '@nestjs/common';
 import { AdminQuizService } from './admin-quiz.service';
 import {
-  CreateQuizDto,
   UpdateQuizDto,
-  CreateQuestionDto,
   UpdateQuestionDto,
+  BulkCreateQuizzesDto,
   BulkUpdateQuizzesDto,
   BulkDeleteQuizzesDto,
+  BulkCreateQuestionsDto,
   BulkUpdateQuestionsDto,
   BulkDeleteQuestionsDto,
 } from './dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
-import { ArrayOrSinglePipe } from '../../common/pipes/array-or-single.pipe';
 
 @Controller('admin')
 @UseGuards(AdminAuthGuard)
@@ -32,16 +31,14 @@ export class AdminQuizController {
 
   // Quiz endpoints
   /**
-   * Create a quiz for content
-   * POST /admin/content/:contentId/quiz
+   * Bulk create quizzes
+   * POST /admin/quiz/bulk
+   * Body: { quizzes: [{ contentId, timeLimit, passingScore }, ...] }
    */
-  @Post('content/:contentId/quiz')
+  @Post('quiz/bulk')
   @HttpCode(HttpStatus.CREATED)
-  createQuiz(
-    @Param('contentId') contentId: string,
-    @Body() createQuizDto: CreateQuizDto,
-  ) {
-    return this.adminQuizService.createQuiz(contentId, createQuizDto);
+  bulkCreateQuizzes(@Body() bulkCreateDto: BulkCreateQuizzesDto) {
+    return this.adminQuizService.bulkCreateQuizzes(bulkCreateDto);
   }
 
   /**
@@ -109,17 +106,14 @@ export class AdminQuizController {
 
   // Question endpoints
   /**
-   * Add question(s) to quiz
-   * POST /admin/quiz/:quizId/questions
-   * Accepts a single object or an array of objects
+   * Bulk create questions
+   * POST /admin/questions/bulk
+   * Body: { questions: [{ quizId, questionText, order, points, correctOptionIndex, options }, ...] }
    */
-  @Post('quiz/:quizId/questions')
+  @Post('questions/bulk')
   @HttpCode(HttpStatus.CREATED)
-  createQuestion(
-    @Param('quizId') quizId: string,
-    @Body(new ArrayOrSinglePipe(CreateQuestionDto)) items: CreateQuestionDto[],
-  ) {
-    return this.adminQuizService.createQuestion(quizId, items);
+  bulkCreateQuestions(@Body() bulkCreateDto: BulkCreateQuestionsDto) {
+    return this.adminQuizService.bulkCreateQuestions(bulkCreateDto);
   }
 
   /**

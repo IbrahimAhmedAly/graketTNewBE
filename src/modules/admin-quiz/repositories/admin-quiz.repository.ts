@@ -36,6 +36,36 @@ export class AdminQuizRepository {
     });
   }
 
+  async createManyQuizzes(
+    quizzes: Array<{ contentId: string; data: CreateQuizDto }>,
+  ) {
+    return this.prisma.$transaction(
+      quizzes.map(({ contentId, data }) =>
+        this.prisma.quiz.create({
+          data: {
+            contentId,
+            timeLimit: data.timeLimit,
+            passingScore: data.passingScore || 70,
+          },
+          include: {
+            content: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+              },
+            },
+            _count: {
+              select: {
+                questions: true,
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
   async findQuizById(id: string) {
     return this.prisma.quiz.findUnique({
       where: { id },
@@ -177,6 +207,40 @@ export class AdminQuizRepository {
     });
   }
 
+  async createManyQuestionsAcrossQuizzes(
+    questions: Array<{ quizId: string; data: CreateQuestionDto }>,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const { quizId, data } of questions) {
+        const question = await tx.question.create({
+          data: {
+            quizId,
+            questionText: data.questionText,
+            order: data.order,
+            points: data.points,
+          },
+        });
+
+        const options = await Promise.all(
+          data.options.map((option, index) =>
+            tx.option.create({
+              data: {
+                questionId: question.id,
+                text: option.text,
+                order: option.order,
+                isCorrect: index === data.correctOptionIndex,
+              },
+            }),
+          ),
+        );
+
+        results.push({ ...question, options });
+      }
+      return results;
+    });
+  }
+
   async findQuestionById(id: string) {
     return this.prisma.question.findUnique({
       where: { id },
@@ -262,6 +326,22 @@ export class AdminQuizRepository {
       where: { id },
     });
     return count > 0;
+  }
+
+  async findManyContentsByIds(contentIds: string[]) {
+    return this.prisma.content.findMany({
+      where: {
+        id: { in: contentIds },
+      },
+      select: {
+        id: true,
+        section: {
+          select: {
+            courseId: true,
+          },
+        },
+      },
+    });
   }
 
   // Bulk operations for quizzes

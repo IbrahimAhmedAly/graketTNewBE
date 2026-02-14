@@ -64,10 +64,47 @@ export class AdminCourseService {
       throw new NotFoundException('Course not found');
     }
 
+    // Extract all questions from course into a separate array
+    const questions = this.extractQuestionsFromCourse(course);
+
     return {
       message: 'Course details retrieved successfully',
-      data: course,
+      data: {
+        ...course,
+        questions,
+      },
     };
+  }
+
+  /**
+   * Extract all questions from a course's sections/contents/quizzes
+   * into a flat array with contextual information
+   */
+  private extractQuestionsFromCourse(course: any) {
+    const questions: any[] = [];
+
+    if (!course.sections) return questions;
+
+    for (const section of course.sections) {
+      if (!section.contents) continue;
+
+      for (const content of section.contents) {
+        if (!content.quiz?.questions) continue;
+
+        for (const question of content.quiz.questions) {
+          questions.push({
+            ...question,
+            quizId: content.quiz.id,
+            contentId: content.id,
+            contentTitle: content.title,
+            sectionId: section.id,
+            sectionTitle: section.title,
+          });
+        }
+      }
+    }
+
+    return questions;
   }
 
   async update(id: string, updateCourseDto: UpdateCourseDto) {

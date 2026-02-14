@@ -156,6 +156,14 @@ export class AdminCourseRepository {
               include: {
                 quiz: {
                   include: {
+                    questions: {
+                      orderBy: { order: 'asc' },
+                      include: {
+                        options: {
+                          orderBy: { order: 'asc' },
+                        },
+                      },
+                    },
                     _count: {
                       select: {
                         questions: true,
