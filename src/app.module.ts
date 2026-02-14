@@ -23,6 +23,7 @@ import { AdminQuizModule } from './modules/admin-quiz/admin-quiz.module';
 import { AdminPurchaseCodeModule } from './modules/admin-purchase-code/admin-purchase-code.module';
 import { AdminUserModule } from './modules/admin-user/admin-user.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AdminNotificationModule } from './modules/admin-notification/admin-noti
     AdminPurchaseCodeModule,
     AdminUserModule,
     AdminNotificationModule,
+    UploadModule,
   ],
   controllers: [],
   providers: [],
