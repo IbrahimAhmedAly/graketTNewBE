@@ -8,6 +8,6 @@ import { JwtModule } from '../jwt/jwt.module';
   imports: [JwtModule],
   controllers: [PurchaseController],
   providers: [PurchaseService, PurchaseRepository],
-  exports: [PurchaseService],
+  exports: [PurchaseService, PurchaseRepository],
 })
 export class PurchaseModule {}

@@ -126,4 +126,45 @@ export class PurchaseRepository {
       },
     });
   }
+
+  /**
+   * Find all purchases for a user for a list of courses
+   * Returns both COURSE and VIDEO purchases with course info
+   */
+  async findUserPurchasesByCourses(userId: string, courseIds: string[]) {
+    return this.prisma.purchase.findMany({
+      where: {
+        userId,
+        OR: [
+          {
+            type: 'COURSE',
+            courseId: { in: courseIds },
+          },
+          {
+            type: 'VIDEO',
+            content: {
+              section: {
+                courseId: { in: courseIds },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        course: {
+          select: { id: true },
+        },
+        content: {
+          select: {
+            id: true,
+            section: {
+              select: {
+                courseId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

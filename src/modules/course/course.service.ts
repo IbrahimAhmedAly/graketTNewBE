@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CourseRepository } from './repositories/course.repository';
 import { CourseQueryDto } from './dto/course-query.dto';
 import { PaginationUtil } from '../../utils/pagination/pagination.util';
+import { PurchaseRepository } from '../purchase/repositories/purchase.repository';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly courseRepository: CourseRepository) {}
+  constructor(
+    private readonly courseRepository: CourseRepository,
+    private readonly purchaseRepository: PurchaseRepository,
+  ) {}
 
-  async findAll(query: CourseQueryDto) {
+  async findAll(query: CourseQueryDto, userId?: string) {
     const { page = 1, limit = 10, search, categoryId, instructorId } = query;
     const skip = PaginationUtil.getSkip(page, limit);
 
@@ -22,7 +26,64 @@ export class CourseService {
       this.courseRepository.count({ search, categoryId, instructorId }),
     ]);
 
-    // Transform courses to include average rating
+    // Get purchase info if user is authenticated
+    const purchaseMap = new Map<
+      string,
+      {
+        isPurchased: boolean;
+        purchaseType: 'COURSE' | 'VIDEO';
+        purchasedVideosCount?: number;
+        totalVideos?: number;
+      }
+    >();
+
+    if (userId && courses.length > 0) {
+      const courseIds = courses.map((c) => c.id);
+      const purchases =
+        await this.purchaseRepository.findUserPurchasesByCourses(
+          userId,
+          courseIds,
+        );
+
+      // Build purchase info for each course
+      const coursePurchases = new Map<string, 'COURSE' | 'VIDEO'>();
+      const videoPurchases = new Map<string, Set<string>>(); // courseId -> Set of purchased video IDs
+
+      for (const purchase of purchases) {
+        if (purchase.type === 'COURSE' && purchase.courseId) {
+          coursePurchases.set(purchase.courseId, 'COURSE');
+        } else if (purchase.type === 'VIDEO' && purchase.content) {
+          const courseId = purchase.content.section.courseId;
+          if (!videoPurchases.has(courseId)) {
+            videoPurchases.set(courseId, new Set());
+          }
+          videoPurchases.get(courseId)!.add(purchase.content.id);
+        }
+      }
+
+      // Build final purchase map
+      for (const course of courses) {
+        if (coursePurchases.has(course.id)) {
+          purchaseMap.set(course.id, {
+            isPurchased: true,
+            purchaseType: 'COURSE',
+          });
+        } else if (videoPurchases.has(course.id)) {
+          const totalVideos = course.sections.reduce(
+            (sum, section) => sum + section.contents.length,
+            0,
+          );
+          purchaseMap.set(course.id, {
+            isPurchased: true,
+            purchaseType: 'VIDEO',
+            purchasedVideosCount: videoPurchases.get(course.id)!.size,
+            totalVideos,
+          });
+        }
+      }
+    }
+
+    // Transform courses to include average rating and purchase info
     const transformedCourses = courses.map((course) => {
       const totalReviews = course.reviews.length;
       const averageRating =
@@ -30,11 +91,15 @@ export class CourseService {
           ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
           : 0;
 
-      const { reviews, ...courseData } = course;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { reviews, sections, ...courseData } = course;
+      const purchaseInfo = purchaseMap.get(course.id);
+
       return {
         ...courseData,
         averageRating: Math.round(averageRating * 10) / 10,
         totalReviews,
+        ...(purchaseInfo && purchaseInfo),
       };
     });
 

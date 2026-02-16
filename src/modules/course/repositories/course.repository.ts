@@ -54,6 +54,14 @@ export class CourseRepository {
             rating: true,
           },
         },
+        sections: {
+          select: {
+            contents: {
+              where: { type: 'VIDEO' },
+              select: { id: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

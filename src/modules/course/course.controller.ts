@@ -9,6 +9,8 @@ import {
 import { CourseService } from './course.service';
 import { CourseQueryDto } from './dto/course-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('course')
 export class CourseController {
@@ -19,8 +21,13 @@ export class CourseController {
    * GET /course?page=1&limit=10&search=web&categoryId=xxx
    */
   @Get()
-  async findAll(@Query() query: CourseQueryDto) {
-    return this.courseService.findAll(query);
+  @UseGuards(OptionalJwtAuthGuard)
+  async findAll(
+    @Query() query: CourseQueryDto,
+    @CurrentUser() user: { id: string } | null,
+  ) {
+    console.log('user:', user);
+    return this.courseService.findAll(query, user?.id);
   }
 
   /**
