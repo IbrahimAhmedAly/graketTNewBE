@@ -93,16 +93,14 @@ export class AuthService {
       OTPPurpose.EMAIL_VERIFICATION,
     );
 
-    // TODO: Send verification email
-    // await this.emailService.sendVerificationEmail(email, otpCode);
-    console.log(`📧 Verification code for ${email}: ${otpCode}`);
+    // Send verification email
+    await this.emailService.sendVerificationEmail(email, otpCode);
 
     return {
       message:
         'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني للتفعيل.',
       verificationToken,
       status: 'pending',
-      code: otpCode, // Return OTP in response (remove in production)
     };
   }
 
@@ -450,15 +448,13 @@ export class AuthService {
       OTPPurpose.EMAIL_VERIFICATION,
     );
 
-    // TODO: Send verification email
-    // await this.emailService.sendVerificationEmail(email, otpCode);
-    console.log(`📧 Verification code resent for ${email}: ${otpCode}`);
+    // Send verification email
+    await this.emailService.sendVerificationEmail(email, otpCode);
 
     return {
       message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.',
       verificationToken,
       status: 'pending',
-      code: otpCode, // Return OTP in response (remove in production)
     };
   }
 }

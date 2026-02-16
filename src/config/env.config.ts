@@ -54,6 +54,10 @@ class EnvironmentVariables {
   @IsString()
   AWS_S3_BUCKET_NAME: string;
 
+  // Resend Configuration
+  @IsString()
+  RESEND_API_KEY: string;
+
   // UPayments Configuration
   @IsString()
   @Transform(
@@ -94,6 +98,10 @@ export const envConfig = {
     accessKeyId: validatedEnv.AWS_ACCESS_KEY_ID,
     secretAccessKey: validatedEnv.AWS_SECRET_ACCESS_KEY,
     s3BucketName: validatedEnv.AWS_S3_BUCKET_NAME,
+  },
+
+  resend: {
+    apiKey: validatedEnv.RESEND_API_KEY,
   },
 
   payment: {
