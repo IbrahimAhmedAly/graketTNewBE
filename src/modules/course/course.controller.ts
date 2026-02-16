@@ -57,7 +57,11 @@ export class CourseController {
    * GET /course/:id
    */
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return this.courseService.findById(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  async findById(
+    @Param('id') id: string,
+    @CurrentUser() user?: { id: string },
+  ) {
+    return this.courseService.findById(id, user?.id);
   }
 }

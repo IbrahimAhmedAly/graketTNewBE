@@ -99,7 +99,17 @@ export class CourseService {
         ...courseData,
         averageRating: Math.round(averageRating * 10) / 10,
         totalReviews,
-        ...(purchaseInfo && purchaseInfo),
+        // Include purchase info for authenticated users
+        ...(userId && {
+          isPurchased: purchaseInfo?.isPurchased ?? false,
+          ...(purchaseInfo?.purchaseType && {
+            purchaseType: purchaseInfo.purchaseType,
+          }),
+          ...(purchaseInfo?.purchasedVideosCount !== undefined && {
+            purchasedVideosCount: purchaseInfo.purchasedVideosCount,
+            totalVideos: purchaseInfo.totalVideos,
+          }),
+        }),
       };
     });
 
@@ -112,7 +122,7 @@ export class CourseService {
     };
   }
 
-  async findById(id: string) {
+  async findById(id: string, userId?: string) {
     const course = await this.courseRepository.findById(id);
 
     if (!course) {
@@ -125,10 +135,46 @@ export class CourseService {
         ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
         : 0;
 
+    // Check purchase access if user is authenticated
+    let hasFullCourseAccess = false;
+    const purchasedVideoIds = new Set<string>();
+
+    if (userId) {
+      const purchases =
+        await this.purchaseRepository.findUserPurchasesByCourses(userId, [id]);
+
+      for (const purchase of purchases) {
+        if (purchase.type === 'COURSE' && purchase.courseId === id) {
+          hasFullCourseAccess = true;
+          break;
+        } else if (purchase.type === 'VIDEO' && purchase.content) {
+          purchasedVideoIds.add(purchase.content.id);
+        }
+      }
+    }
+
+    // Transform sections with access control
+    const transformedSections = course.sections.map((section) => ({
+      ...section,
+      contents: section.contents.map((content) => {
+        const hasAccess =
+          hasFullCourseAccess || purchasedVideoIds.has(content.id);
+
+        return {
+          ...content,
+          hasAccess,
+          // Only include URLs if user has access
+          videoUrl: hasAccess ? content.videoUrl : undefined,
+          pdfUrl: hasAccess ? content.pdfUrl : undefined,
+        };
+      }),
+    }));
+
     return {
       message: 'تم جلب تفاصيل الدورة بنجاح',
       data: {
         ...course,
+        sections: transformedSections,
         averageRating: Math.round(averageRating * 10) / 10,
         totalReviews,
       },

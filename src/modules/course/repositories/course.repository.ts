@@ -122,6 +122,8 @@ export class CourseRepository {
                 type: true,
                 order: true,
                 duration: true,
+                videoUrl: true,
+                pdfUrl: true,
               },
             },
           },
