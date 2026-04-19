@@ -23,7 +23,8 @@
     "p:migrate": "npx prisma migrate dev",
     "p:studio": "npx prisma studio",
     "p:db:push": "npx prisma db push",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "seed:js-mastery": "ts-node prisma/seed-js-mastery.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
