@@ -261,6 +261,36 @@ export class CourseService {
   }
 
   /**
+   * Return a list of related courses (same category, excluding the source).
+   * Response mirrors the shape of other course lists: averageRating + totalReviews,
+   * reviews array stripped.
+   */
+  async getRelated(courseId: string, limit: number = 6) {
+    const courses = await this.courseRepository.findRelated({
+      courseId,
+      take: limit,
+    });
+    const transformed = courses.map((course) => {
+      const totalReviews = course.reviews.length;
+      const averageRating =
+        totalReviews > 0
+          ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+          : 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { reviews, ...rest } = course;
+      return {
+        ...rest,
+        averageRating: Math.round(averageRating * 10) / 10,
+        totalReviews,
+      };
+    });
+    return {
+      message: 'تم جلب الدورات المشابهة بنجاح',
+      data: transformed,
+    };
+  }
+
+  /**
    * Return paginated reviews for a course — used by the dedicated
    * "all reviews" screen so the inline course detail can stay lean.
    */

@@ -145,6 +145,36 @@ export class CourseRepository {
   }
 
   /**
+   * Find published courses in the same category as the given one (excluding it).
+   * Used by the "Students also bought" carousel.
+   */
+  async findRelated(params: { courseId: string; take: number }) {
+    const { courseId, take } = params;
+    const current = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { categoryId: true },
+    });
+    if (!current) return [];
+
+    return this.prisma.course.findMany({
+      where: {
+        isPublished: true,
+        id: { not: courseId },
+        categoryId: current.categoryId,
+      },
+      take,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        instructor: {
+          select: { id: true, name: true, avatar: true, title: true },
+        },
+        category: { select: { id: true, name: true, slug: true } },
+        reviews: { select: { rating: true } },
+      },
+    });
+  }
+
+  /**
    * Returns full paginated reviews for a course (not limited to 10),
    * used by the dedicated "all reviews" endpoint.
    */

@@ -77,4 +77,16 @@ export class CourseController {
   ) {
     return this.courseService.getReviews(id, page || 1, limit || 20);
   }
+
+  /**
+   * Get related courses (same category, excluding the current one)
+   * GET /course/:id/related?limit=6
+   */
+  @Get(':id/related')
+  async getRelated(
+    @Param('id') id: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.courseService.getRelated(id, limit || 6);
+  }
 }
