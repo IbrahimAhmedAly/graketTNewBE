@@ -144,6 +144,36 @@ export class CourseRepository {
     });
   }
 
+  /**
+   * Returns full paginated reviews for a course (not limited to 10),
+   * used by the dedicated "all reviews" endpoint.
+   */
+  async findReviewsByCourse(params: {
+    courseId: string;
+    skip: number;
+    take: number;
+  }) {
+    const { courseId, skip, take } = params;
+    const [reviews, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { courseId },
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.review.count({ where: { courseId } }),
+    ]);
+    return { reviews, total };
+  }
+
   async getRecommended(userId: string, take: number = 10) {
     // Get user's enrolled course categories
     const userEnrollments = await this.prisma.enrollment.findMany({

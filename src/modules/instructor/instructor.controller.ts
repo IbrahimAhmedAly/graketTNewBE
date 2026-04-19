@@ -61,6 +61,20 @@ export class InstructorController {
   }
 
   /**
+   * Get all published courses taught by an instructor (paginated).
+   * GET /instructors/:id/courses?page=1&limit=20
+   */
+  @Get(':id/courses')
+  @HttpCode(HttpStatus.OK)
+  async getInstructorCourses(
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return await this.instructorService.findCourses(id, page || 1, limit || 20);
+  }
+
+  /**
    * Update instructor by ID
    * PATCH /instructors/:id
    */

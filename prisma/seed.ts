@@ -542,7 +542,314 @@ async function main() {
     },
   });
 
-  console.log(`✅ Created 5 courses with sections and content\n`);
+  // Course 6: JavaScript Mastery — Full Stack Development (YouTube videos)
+  const jsMasteryCourse = await prisma.course.create({
+    data: {
+      title: 'JavaScript Mastery — Full Stack Development',
+      slug: 'javascript-mastery-full-stack',
+      description:
+        'A comprehensive full-stack JavaScript course covering modern ES6+, React, Node.js, Express, and MongoDB. Build real-world projects from scratch and master both frontend and backend development. Ideal for developers who want to become job-ready full-stack engineers.',
+      thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479',
+      instructorId: instructors[0].id,
+      categoryId: categories[0].id,
+      price: 549.99,
+      discountPrice: 349.99,
+      totalDuration: 4800, // 80 hours
+      totalVideos: 12,
+      totalQuizzes: 2,
+      isPublished: true,
+    },
+  });
+
+  // Section 6.1: JavaScript Fundamentals
+  const jsSection1 = await prisma.section.create({
+    data: {
+      title: 'Section 1: JavaScript Fundamentals',
+      order: 1,
+      courseId: jsMasteryCourse.id,
+    },
+  });
+
+  await prisma.content.createMany({
+    data: [
+      {
+        title: 'Lecture 1: JavaScript Crash Course for Beginners',
+        type: ContentType.VIDEO,
+        order: 1,
+        duration: 60,
+        sectionId: jsSection1.id,
+        videoUrl: 'https://www.youtube.com/watch?v=hdI2bqOjy3c',
+      },
+      {
+        title: 'Lecture 2: JavaScript DOM Manipulation',
+        type: ContentType.VIDEO,
+        order: 2,
+        duration: 45,
+        sectionId: jsSection1.id,
+        videoUrl: 'https://www.youtube.com/watch?v=5fb2aPlgoys',
+      },
+      {
+        title: 'Lecture 3: JavaScript ES6+ Features',
+        type: ContentType.VIDEO,
+        order: 3,
+        duration: 50,
+        sectionId: jsSection1.id,
+        videoUrl: 'https://www.youtube.com/watch?v=NCwa_xi0Uuc',
+      },
+      {
+        title: 'JavaScript ES6 Cheat Sheet',
+        type: ContentType.PDF,
+        order: 4,
+        sectionId: jsSection1.id,
+        pdfUrl: 'https://example.com/pdfs/js-es6-cheatsheet.pdf',
+        fileSize: 1536000, // 1.5 MB
+      },
+    ],
+  });
+
+  // JS Fundamentals Quiz
+  const jsQuizContent = await prisma.content.create({
+    data: {
+      title: 'JavaScript Fundamentals Quiz',
+      type: ContentType.QUIZ,
+      order: 5,
+      duration: 20,
+      sectionId: jsSection1.id,
+    },
+  });
+
+  const jsQuiz = await prisma.quiz.create({
+    data: {
+      contentId: jsQuizContent.id,
+      timeLimit: 20,
+      passingScore: 70,
+    },
+  });
+
+  const jsQ1 = await prisma.question.create({
+    data: {
+      quizId: jsQuiz.id,
+      questionText: 'Which keyword declares a block-scoped variable in ES6?',
+      order: 1,
+      points: 1,
+    },
+  });
+
+  await prisma.option.createMany({
+    data: [
+      { questionId: jsQ1.id, text: 'var', isCorrect: false, order: 1 },
+      { questionId: jsQ1.id, text: 'let', isCorrect: true, order: 2 },
+      { questionId: jsQ1.id, text: 'define', isCorrect: false, order: 3 },
+      { questionId: jsQ1.id, text: 'static', isCorrect: false, order: 4 },
+    ],
+  });
+
+  const jsQ2 = await prisma.question.create({
+    data: {
+      quizId: jsQuiz.id,
+      questionText: 'What does the spread operator (...) do in JavaScript?',
+      order: 2,
+      points: 1,
+    },
+  });
+
+  await prisma.option.createMany({
+    data: [
+      {
+        questionId: jsQ2.id,
+        text: 'Expands an iterable into individual elements',
+        isCorrect: true,
+        order: 1,
+      },
+      {
+        questionId: jsQ2.id,
+        text: 'Declares a rest parameter',
+        isCorrect: false,
+        order: 2,
+      },
+      {
+        questionId: jsQ2.id,
+        text: 'Multiplies array values',
+        isCorrect: false,
+        order: 3,
+      },
+      {
+        questionId: jsQ2.id,
+        text: 'Merges two functions',
+        isCorrect: false,
+        order: 4,
+      },
+    ],
+  });
+
+  // Section 6.2: React.js
+  const jsSection2 = await prisma.section.create({
+    data: {
+      title: 'Section 2: React.js — Building Modern UIs',
+      order: 2,
+      courseId: jsMasteryCourse.id,
+    },
+  });
+
+  await prisma.content.createMany({
+    data: [
+      {
+        title: 'Lecture 1: React JS Full Course for Beginners',
+        type: ContentType.VIDEO,
+        order: 1,
+        duration: 90,
+        sectionId: jsSection2.id,
+        videoUrl: 'https://www.youtube.com/watch?v=RVFAyFWO4go',
+      },
+      {
+        title: 'Lecture 2: React Hooks — useState & useEffect',
+        type: ContentType.VIDEO,
+        order: 2,
+        duration: 55,
+        sectionId: jsSection2.id,
+        videoUrl: 'https://www.youtube.com/watch?v=O6P86uwfdR0',
+      },
+      {
+        title: 'Lecture 3: React Context API and State Management',
+        type: ContentType.VIDEO,
+        order: 3,
+        duration: 48,
+        sectionId: jsSection2.id,
+        videoUrl: 'https://www.youtube.com/watch?v=35lXWvCuM8o',
+      },
+      {
+        title: 'React Components Cheat Sheet',
+        type: ContentType.PDF,
+        order: 4,
+        sectionId: jsSection2.id,
+        pdfUrl: 'https://example.com/pdfs/react-components-cheatsheet.pdf',
+        fileSize: 2048000, // 2 MB
+      },
+    ],
+  });
+
+  // React Quiz
+  const reactQuizContent = await prisma.content.create({
+    data: {
+      title: 'React.js Quiz',
+      type: ContentType.QUIZ,
+      order: 5,
+      duration: 20,
+      sectionId: jsSection2.id,
+    },
+  });
+
+  const reactQuiz = await prisma.quiz.create({
+    data: {
+      contentId: reactQuizContent.id,
+      timeLimit: 20,
+      passingScore: 70,
+    },
+  });
+
+  const reactQ1 = await prisma.question.create({
+    data: {
+      quizId: reactQuiz.id,
+      questionText: 'Which hook is used to manage state in a React functional component?',
+      order: 1,
+      points: 1,
+    },
+  });
+
+  await prisma.option.createMany({
+    data: [
+      { questionId: reactQ1.id, text: 'useEffect', isCorrect: false, order: 1 },
+      { questionId: reactQ1.id, text: 'useContext', isCorrect: false, order: 2 },
+      { questionId: reactQ1.id, text: 'useState', isCorrect: true, order: 3 },
+      { questionId: reactQ1.id, text: 'useReducer', isCorrect: false, order: 4 },
+    ],
+  });
+
+  const reactQ2 = await prisma.question.create({
+    data: {
+      quizId: reactQuiz.id,
+      questionText: 'What is JSX?',
+      order: 2,
+      points: 1,
+    },
+  });
+
+  await prisma.option.createMany({
+    data: [
+      {
+        questionId: reactQ2.id,
+        text: 'A JavaScript library for styling',
+        isCorrect: false,
+        order: 1,
+      },
+      {
+        questionId: reactQ2.id,
+        text: 'A syntax extension that allows HTML-like code in JavaScript',
+        isCorrect: true,
+        order: 2,
+      },
+      {
+        questionId: reactQ2.id,
+        text: 'A package manager for React',
+        isCorrect: false,
+        order: 3,
+      },
+      {
+        questionId: reactQ2.id,
+        text: 'A database query language',
+        isCorrect: false,
+        order: 4,
+      },
+    ],
+  });
+
+  // Section 6.3: Node.js & Express
+  const jsSection3 = await prisma.section.create({
+    data: {
+      title: 'Section 3: Node.js & Express — Backend Development',
+      order: 3,
+      courseId: jsMasteryCourse.id,
+    },
+  });
+
+  await prisma.content.createMany({
+    data: [
+      {
+        title: 'Lecture 1: Node.js Crash Course',
+        type: ContentType.VIDEO,
+        order: 1,
+        duration: 75,
+        sectionId: jsSection3.id,
+        videoUrl: 'https://www.youtube.com/watch?v=fBNz5xF-Kx4',
+      },
+      {
+        title: 'Lecture 2: Express.js REST API Tutorial',
+        type: ContentType.VIDEO,
+        order: 2,
+        duration: 65,
+        sectionId: jsSection3.id,
+        videoUrl: 'https://www.youtube.com/watch?v=l8WPWK9mS5M',
+      },
+      {
+        title: 'Lecture 3: MongoDB & Mongoose with Node.js',
+        type: ContentType.VIDEO,
+        order: 3,
+        duration: 70,
+        sectionId: jsSection3.id,
+        videoUrl: 'https://www.youtube.com/watch?v=DZBGEVgL2eE',
+      },
+      {
+        title: 'Node.js & Express API Reference',
+        type: ContentType.PDF,
+        order: 4,
+        sectionId: jsSection3.id,
+        pdfUrl: 'https://example.com/pdfs/nodejs-express-reference.pdf',
+        fileSize: 2560000, // 2.5 MB
+      },
+    ],
+  });
+
+  console.log(`✅ Created 6 courses with sections and content\n`);
 
   // ============================================
   // 6. CREATE ENROLLMENTS
@@ -778,7 +1085,35 @@ async function main() {
     },
   });
 
-  console.log('✅ Created 8 purchase codes\n');
+  // JavaScript Mastery course — single-use code
+  await prisma.purchaseCode.create({
+    data: {
+      code: 'JSMASTERY-2026-001',
+      type: PurchaseType.COURSE,
+      courseId: jsMasteryCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 1,
+      usedCount: 0,
+      expiresAt: new Date('2026-12-31'),
+    },
+  });
+
+  // JavaScript Mastery course — multi-use code (up to 50 students)
+  await prisma.purchaseCode.create({
+    data: {
+      code: 'JSMASTERY-BATCH-50',
+      type: PurchaseType.COURSE,
+      courseId: jsMasteryCourse.id,
+      isUsed: false,
+      createdBy: admin.id,
+      maxUses: 50,
+      usedCount: 0,
+      expiresAt: new Date('2026-12-31'),
+    },
+  });
+
+  console.log('✅ Created 10 purchase codes\n');
 
   // ============================================
   // 10. CREATE PURCHASES
@@ -830,12 +1165,12 @@ async function main() {
   console.log(`   - Users: ${users.length}`);
   console.log(`   - Categories: ${categories.length}`);
   console.log(`   - Instructors: ${instructors.length}`);
-  console.log(`   - Courses: 5 (4 published, 1 draft)`);
+  console.log(`   - Courses: 6 (5 published, 1 draft)`);
   console.log(`   - Sections: Multiple per course`);
-  console.log(`   - Content: Videos, PDFs, and Quizzes`);
+  console.log(`   - Content: Videos (incl. YouTube), PDFs, and Quizzes`);
   console.log(`   - Enrollments: ${enrollments.length}`);
   console.log(`   - Reviews: 4`);
-  console.log(`   - Purchase Codes: 8 (3 used, 4 unused, 1 expired)`);
+  console.log(`   - Purchase Codes: 10 (3 used, 6 unused, 1 expired)`);
   console.log(`   - Purchases: 3 (1 course, 2 videos)\n`);
   console.log('🔐 Login credentials:');
   console.log('   Admin: admin@graket.com / password123');
@@ -849,7 +1184,9 @@ async function main() {
   console.log('   - DATASCI-PROMO-001 (Data Science Course - unused)');
   console.log('   - MOBILE-DEV-2026 (Mobile Development Course - unused)');
   console.log('   - VIDEO-CSS-INTRO-FREE (CSS Video - unused)');
-  console.log('   - PROMO-MULTI-USE-10 (Web Dev Course - multi-use, 0/10 used)\n');
+  console.log('   - PROMO-MULTI-USE-10 (Web Dev Course - multi-use, 0/10 used)');
+  console.log('   - JSMASTERY-2026-001 (JS Mastery Course - single-use)');
+  console.log('   - JSMASTERY-BATCH-50 (JS Mastery Course - multi-use, 0/50 used)\n');
 }
 
 main()

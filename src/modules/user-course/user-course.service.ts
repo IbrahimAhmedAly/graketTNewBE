@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserCourseRepository } from './repositories/user-course.repository';
 import { UserCourseQueryDto } from './dto/user-course-query.dto';
 import { PaginationUtil } from '../../utils/pagination/pagination.util';
@@ -52,6 +56,87 @@ export class UserCourseService {
         page,
         limit,
       }),
+    };
+  }
+
+  /**
+   * Check whether a course is currently saved (wishlisted) by this user.
+   */
+  async isSaved(userId: string, courseId: string) {
+    const enrollment = await this.userCourseRepository.findEnrollmentRow(
+      userId,
+      courseId,
+    );
+    return {
+      message: 'تم جلب حالة الحفظ',
+      data: {
+        courseId,
+        isSaved: enrollment?.status === EnrollmentStatus.SAVED,
+      },
+    };
+  }
+
+  /**
+   * Save a course to the user's wishlist. If an enrollment already exists
+   * with a non-SAVED status (ONGOING / COMPLETED), we do NOT overwrite it —
+   * those represent real progress. In that case we return a friendly
+   * explanation so the UI can keep the heart "off" or hide the action.
+   */
+  async saveCourse(userId: string, courseId: string) {
+    const course = await this.userCourseRepository.findCourseById(courseId);
+    if (!course) {
+      throw new NotFoundException('الدورة غير موجودة');
+    }
+
+    const existing = await this.userCourseRepository.findEnrollmentRow(
+      userId,
+      courseId,
+    );
+
+    if (existing) {
+      if (existing.status === EnrollmentStatus.SAVED) {
+        return {
+          message: 'تم حفظ الدورة مسبقاً',
+          data: { courseId, isSaved: true },
+        };
+      }
+      // ONGOING / COMPLETED — don't overwrite real progress
+      throw new BadRequestException(
+        'لا يمكن حفظ دورة مسجَّل بها بالفعل',
+      );
+    }
+
+    await this.userCourseRepository.createSavedEnrollment(userId, courseId);
+    return {
+      message: 'تم حفظ الدورة بنجاح',
+      data: { courseId, isSaved: true },
+    };
+  }
+
+  /**
+   * Remove a saved course from wishlist. Only deletes when the enrollment
+   * is in SAVED state — avoids wiping out real ONGOING/COMPLETED records.
+   */
+  async unsaveCourse(userId: string, courseId: string) {
+    const existing = await this.userCourseRepository.findEnrollmentRow(
+      userId,
+      courseId,
+    );
+    if (!existing) {
+      return {
+        message: 'الدورة غير محفوظة',
+        data: { courseId, isSaved: false },
+      };
+    }
+    if (existing.status !== EnrollmentStatus.SAVED) {
+      throw new BadRequestException(
+        'هذه الدورة مسجَّلة بالفعل ولا يمكن إزالتها من المحفوظات',
+      );
+    }
+    await this.userCourseRepository.deleteEnrollmentById(existing.id);
+    return {
+      message: 'تمت إزالة الدورة من المحفوظات',
+      data: { courseId, isSaved: false },
     };
   }
 

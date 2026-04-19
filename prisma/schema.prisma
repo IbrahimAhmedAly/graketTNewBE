@@ -28,6 +28,9 @@ model User {
   usedPurchaseCodes PurchaseCode[]
   basketItems       BasketItem[]
   notifications     Notification[]
+  courseQuestions   CourseQuestion[]
+  courseAnswers     CourseAnswer[]
+  contentNotes      ContentNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -128,13 +131,17 @@ model Course {
   category   Category @relation(fields: [categoryId], references: [id])
 
   // Pricing
-  price         Float  @default(0)
-  discountPrice Float? // Discounted price if any
+  price            Float     @default(0)
+  discountPrice    Float? // Discounted price if any
+  discountExpiresAt DateTime? // When the discount expires (null = no expiry)
 
   // Course meta
   totalDuration Int @default(0) // Total duration in minutes
   totalVideos   Int @default(0)
   totalQuizzes  Int @default(0)
+
+  // Learning outcomes - stored as JSON array of bullet strings
+  learningOutcomes Json? // e.g. ["Build real Flutter apps", "Master state management"]
 
   // Status
   status      CourseStatus @default(DRAFT)
@@ -146,6 +153,7 @@ model Course {
   purchaseCodes PurchaseCode[]
   purchases     Purchase[]
   basketItems   BasketItem[]
+  questions     CourseQuestion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -201,6 +209,7 @@ model Content {
   progress      Progress[]
   purchaseCodes PurchaseCode[]
   purchases     Purchase[]
+  notes         ContentNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -542,4 +551,66 @@ enum NotificationType {
   NEW_COURSE // New courses available
   ACHIEVEMENT // User achievements
   SYSTEM // System notifications
+}
+
+// ============================================
+// Q&A — Course-level threads anchored to a course
+// ============================================
+model CourseQuestion {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  title String
+  body  String @db.Text
+
+  answers CourseAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([courseId, createdAt])
+  @@index([userId])
+}
+
+model CourseAnswer {
+  id         String @id @default(uuid())
+  questionId String
+  question   CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  body           String  @db.Text
+  isInstructor   Boolean @default(false) // marks answers from the course instructor/admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([questionId, createdAt])
+  @@index([userId])
+}
+
+// ============================================
+// Notes — per-user per-content free-form notes
+// ============================================
+model ContentNote {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  body String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, contentId]) // one note per (user, content)
+  @@index([userId])
+  @@index([contentId])
 }

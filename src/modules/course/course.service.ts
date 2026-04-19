@@ -170,6 +170,30 @@ export class CourseService {
       }),
     }));
 
+    // Build purchaseInfo for authenticated users
+    let purchaseInfo: {
+      isPurchased: boolean;
+      purchaseType?: 'COURSE' | 'VIDEO';
+      purchasedVideoIds?: string[];
+    } | null = null;
+
+    if (userId) {
+      if (hasFullCourseAccess) {
+        purchaseInfo = {
+          isPurchased: true,
+          purchaseType: 'COURSE',
+        };
+      } else if (purchasedVideoIds.size > 0) {
+        purchaseInfo = {
+          isPurchased: true,
+          purchaseType: 'VIDEO',
+          purchasedVideoIds: Array.from(purchasedVideoIds),
+        };
+      } else {
+        purchaseInfo = { isPurchased: false };
+      }
+    }
+
     return {
       message: 'تم جلب تفاصيل الدورة بنجاح',
       data: {
@@ -177,6 +201,7 @@ export class CourseService {
         sections: transformedSections,
         averageRating: Math.round(averageRating * 10) / 10,
         totalReviews,
+        ...(purchaseInfo !== null && { purchaseInfo }),
       },
     };
   }
@@ -232,6 +257,26 @@ export class CourseService {
     return {
       message: 'تم جلب الدورات الأكثر شعبية بنجاح',
       data: transformedCourses,
+    };
+  }
+
+  /**
+   * Return paginated reviews for a course — used by the dedicated
+   * "all reviews" screen so the inline course detail can stay lean.
+   */
+  async getReviews(courseId: string, page: number = 1, limit: number = 20) {
+    const params = PaginationUtil.getPaginationParams(page, limit);
+    const skip = PaginationUtil.getSkip(params.page, params.limit);
+
+    const { reviews, total } = await this.courseRepository.findReviewsByCourse({
+      courseId,
+      skip,
+      take: params.limit,
+    });
+
+    return {
+      message: 'تم جلب تقييمات الدورة بنجاح',
+      ...PaginationUtil.paginate(reviews, total, params),
     };
   }
 }

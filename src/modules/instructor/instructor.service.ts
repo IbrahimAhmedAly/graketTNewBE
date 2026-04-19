@@ -138,6 +138,54 @@ export class InstructorService {
   }
 
   /**
+   * Return paginated list of an instructor's published courses,
+   * each enriched with rating + category.
+   */
+  async findCourses(id: string, page: number = 1, limit: number = 20) {
+    const instructor = await this.instructorRepository.findById(id);
+    if (!instructor) {
+      throw new NotFoundException('المدرس غير موجود');
+    }
+
+    const params = PaginationUtil.getPaginationParams(page, limit);
+    const skip = PaginationUtil.getSkip(params.page, params.limit);
+
+    const { courses, total } =
+      await this.instructorRepository.findCoursesByInstructor({
+        instructorId: id,
+        skip,
+        take: params.limit,
+      });
+
+    const transformed = courses.map((course) => {
+      const totalReviews = course.reviews.length;
+      const averageRating =
+        totalReviews > 0
+          ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+          : 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { reviews, ...rest } = course;
+      return {
+        ...rest,
+        averageRating: Math.round(averageRating * 10) / 10,
+        totalReviews,
+      };
+    });
+
+    return {
+      message: 'تم جلب دورات المدرس بنجاح',
+      ...PaginationUtil.paginate(transformed, total, params),
+      instructor: {
+        id: instructor.id,
+        name: instructor.name,
+        avatar: instructor.avatar,
+        title: instructor.title,
+        bio: instructor.bio,
+      },
+    };
+  }
+
+  /**
    * Delete instructor by ID
    */
   async remove(id: string): Promise<{ message: string }> {

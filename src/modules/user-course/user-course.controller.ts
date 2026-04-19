@@ -1,7 +1,9 @@
 import {
   Controller,
+  Delete,
   Get,
   Param,
+  Post,
   Query,
   UseGuards,
   Request,
@@ -25,6 +27,42 @@ export class UserCourseController {
     @Query() query: UserCourseQueryDto,
   ) {
     return this.userCourseService.getMyCourses(req.user.id, query);
+  }
+
+  /**
+   * Check if a course is in the user's saved/wishlist
+   * GET /my-courses/:courseId/save
+   */
+  @Get(':courseId/save')
+  async isSaved(
+    @Request() req: { user: { id: string } },
+    @Param('courseId') courseId: string,
+  ) {
+    return this.userCourseService.isSaved(req.user.id, courseId);
+  }
+
+  /**
+   * Add a course to the user's wishlist (SAVED enrollment).
+   * POST /my-courses/:courseId/save
+   */
+  @Post(':courseId/save')
+  async saveCourse(
+    @Request() req: { user: { id: string } },
+    @Param('courseId') courseId: string,
+  ) {
+    return this.userCourseService.saveCourse(req.user.id, courseId);
+  }
+
+  /**
+   * Remove a course from the user's wishlist.
+   * DELETE /my-courses/:courseId/save
+   */
+  @Delete(':courseId/save')
+  async unsaveCourse(
+    @Request() req: { user: { id: string } },
+    @Param('courseId') courseId: string,
+  ) {
+    return this.userCourseService.unsaveCourse(req.user.id, courseId);
   }
 
   /**

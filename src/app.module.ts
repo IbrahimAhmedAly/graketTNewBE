@@ -25,8 +25,6 @@ import { AdminUserModule } from './modules/admin-user/admin-user.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { AdminSelectListModule } from './modules/admin-select-list/admin-select-list.module';
-import { UserModule } from './modules/user/user.module';
-
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
@@ -53,7 +51,6 @@ import { UserModule } from './modules/user/user.module';
     AdminNotificationModule,
     UploadModule,
     AdminSelectListModule,
-    UserModule,
   ],
   controllers: [],
   providers: [],

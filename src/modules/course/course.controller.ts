@@ -64,4 +64,17 @@ export class CourseController {
   ) {
     return this.courseService.findById(id, user?.id);
   }
+
+  /**
+   * Get all reviews for a course (paginated)
+   * GET /course/:id/reviews?page=1&limit=20
+   */
+  @Get(':id/reviews')
+  async getReviews(
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.courseService.getReviews(id, page || 1, limit || 20);
+  }
 }

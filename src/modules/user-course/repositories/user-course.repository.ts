@@ -165,6 +165,39 @@ export class UserCourseRepository {
     });
   }
 
+  /**
+   * Lightweight enrollment lookup returning only the row (no course join).
+   * Used by wishlist save/unsave where we just need the status + id.
+   */
+  async findEnrollmentRow(userId: string, courseId: string) {
+    return this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { id: true, status: true },
+    });
+  }
+
+  async findCourseById(courseId: string) {
+    return this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, isPublished: true },
+    });
+  }
+
+  async createSavedEnrollment(userId: string, courseId: string) {
+    return this.prisma.enrollment.create({
+      data: {
+        userId,
+        courseId,
+        status: EnrollmentStatus.SAVED,
+        progress: 0,
+      },
+    });
+  }
+
+  async deleteEnrollmentById(id: string) {
+    return this.prisma.enrollment.delete({ where: { id } });
+  }
+
   async getUserContentProgress(userId: string, courseId: string) {
     return this.prisma.progress.findMany({
       where: {

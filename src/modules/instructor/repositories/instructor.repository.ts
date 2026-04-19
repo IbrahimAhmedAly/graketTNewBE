@@ -131,4 +131,33 @@ export class InstructorRepository {
     });
     return count > 0;
   }
+
+  /**
+   * List published courses taught by this instructor with rating + category.
+   */
+  async findCoursesByInstructor(params: {
+    instructorId: string;
+    skip: number;
+    take: number;
+  }) {
+    const { instructorId, skip, take } = params;
+    const where: Prisma.CourseWhereInput = {
+      instructorId,
+      isPublished: true,
+    };
+    const [courses, total] = await Promise.all([
+      this.prisma.course.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          reviews: { select: { rating: true } },
+        },
+      }),
+      this.prisma.course.count({ where }),
+    ]);
+    return { courses, total };
+  }
 }
