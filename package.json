@@ -24,7 +24,8 @@
     "p:studio": "npx prisma studio",
     "p:db:push": "npx prisma db push",
     "seed": "ts-node prisma/seed.ts",
-    "seed:js-mastery": "ts-node prisma/seed-js-mastery.ts"
+    "seed:js-mastery": "ts-node prisma/seed-js-mastery.ts",
+    "wipe:users-codes": "ts-node scripts/wipe-users-and-codes.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
