@@ -34,4 +34,28 @@ export class AdminSelectListRepository {
       orderBy: { title: 'asc' },
     });
   }
+
+  async findAllUsers(search?: string) {
+    return this.prisma.user.findMany({
+      where: {
+        status: { not: 'DELETED' },
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search } },
+                { email: { contains: search } },
+                { serial: { contains: search } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  }
 }

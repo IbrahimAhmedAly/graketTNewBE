@@ -28,4 +28,12 @@ export class AdminSelectListService {
       data: courses,
     };
   }
+
+  async getUsers(search?: string) {
+    const users = await this.repository.findAllUsers(search);
+    return {
+      message: 'Users retrieved successfully',
+      data: users,
+    };
+  }
 }

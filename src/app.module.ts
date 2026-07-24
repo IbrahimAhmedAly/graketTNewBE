@@ -27,6 +27,9 @@ import { UploadModule } from './modules/upload/upload.module';
 import { AdminSelectListModule } from './modules/admin-select-list/admin-select-list.module';
 import { CourseQaModule } from './modules/course-qa/course-qa.module';
 import { ContentNoteModule } from './modules/content-note/content-note.module';
+import { LegalDocumentModule } from './modules/legal-document/legal-document.module';
+import { BannerModule } from './modules/banner/banner.module';
+import { AdminBannerModule } from './modules/admin-banner/admin-banner.module';
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
@@ -55,6 +58,9 @@ import { ContentNoteModule } from './modules/content-note/content-note.module';
     AdminSelectListModule,
     CourseQaModule,
     ContentNoteModule,
+    LegalDocumentModule,
+    BannerModule,
+    AdminBannerModule,
   ],
   controllers: [],
   providers: [],

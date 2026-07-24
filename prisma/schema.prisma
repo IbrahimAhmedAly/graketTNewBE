@@ -615,3 +615,42 @@ model ContentNote {
   @@index([userId])
   @@index([contentId])
 }
+
+// ============================================
+// Legal Documents — Privacy Policy & Terms and Conditions
+// Single row per type, edited in place by admins, read publicly.
+// Bilingual (Arabic + English) rich-text (HTML) bodies.
+// ============================================
+model LegalDocument {
+  id String @id @default(uuid())
+
+  type LegalDocumentType @unique // one document per type
+
+  // Bilingual rich-text (HTML) bodies produced by the dashboard editor
+  contentAr String @db.Text
+  contentEn String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([type])
+}
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_AND_CONDITIONS
+}
+
+// ============================================
+// BANNER MODEL (Home-screen marketing banners)
+// ============================================
+model Banner {
+  id       String  @id @default(uuid())
+  image    String // S3 public image URL
+  isActive Boolean @default(true) // Only active banners show in the app
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([isActive])
+}
