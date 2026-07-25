@@ -9,12 +9,14 @@ import { CreateCourseDto, UpdateCourseDto, QueryCourseDto } from './dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseStatusUtil } from '../../utils/course-status';
 import { PaginationUtil } from '../../utils/pagination/pagination.util';
+import { EducationService } from '../education/education.service';
 
 @Injectable()
 export class AdminCourseService {
   constructor(
     private readonly repository: AdminCourseRepository,
     private readonly prisma: PrismaService,
+    private readonly educationService: EducationService,
   ) {}
 
   async create(createCourseDto: CreateCourseDto) {
@@ -34,6 +36,11 @@ export class AdminCourseService {
         'Discount price must be less than regular price',
       );
     }
+
+    await this.educationService.assertValidTargeting(
+      createCourseDto.educationLevelId,
+      createCourseDto.gradeId,
+    );
 
     const course = await this.repository.create(createCourseDto);
 
@@ -135,6 +142,25 @@ export class AdminCourseService {
           'Discount price must be less than regular price',
         );
       }
+    }
+
+    // Validate against the level the course will actually have after the
+    // update: the incoming one, or the existing one when it isn't changing.
+    if (
+      updateCourseDto.educationLevelId !== undefined ||
+      updateCourseDto.gradeId !== undefined
+    ) {
+      const current = await this.prisma.course.findUnique({
+        where: { id },
+        select: { educationLevelId: true },
+      });
+      const effectiveLevelId =
+        updateCourseDto.educationLevelId ?? current?.educationLevelId ?? undefined;
+
+      await this.educationService.assertValidTargeting(
+        effectiveLevelId,
+        updateCourseDto.gradeId,
+      );
     }
 
     const course = await this.repository.update(id, updateCourseDto);

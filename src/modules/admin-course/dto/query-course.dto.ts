@@ -36,6 +36,14 @@ export class QueryCourseDto {
   @IsOptional()
   instructorId?: string;
 
+  @IsUUID()
+  @IsOptional()
+  educationLevelId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  gradeId?: string;
+
   @IsBoolean()
   @Type(() => Boolean)
   @IsOptional()

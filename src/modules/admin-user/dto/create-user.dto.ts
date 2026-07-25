@@ -5,6 +5,7 @@ import {
   IsOptional,
   MinLength,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
@@ -25,6 +26,16 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   serial: string;
+
+  /** The student's education level (University / Middle / Primary) */
+  @IsUUID('4')
+  @IsNotEmpty()
+  educationLevelId: string;
+
+  /** The student's year/grade within that level */
+  @IsUUID('4')
+  @IsNotEmpty()
+  gradeId: string;
 
   @IsEnum(UserStatus)
   @IsOptional()

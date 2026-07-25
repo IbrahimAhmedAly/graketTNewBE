@@ -35,6 +35,29 @@ export class AdminSelectListRepository {
     });
   }
 
+  async findAllEducationLevels() {
+    return this.prisma.educationLevel.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  /** Grades for the dependent dropdown; pass a level to scope the list */
+  async findAllGrades(educationLevelId?: string) {
+    return this.prisma.grade.findMany({
+      where: educationLevelId ? { educationLevelId } : {},
+      select: {
+        id: true,
+        name: true,
+        educationLevelId: true,
+      },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+    });
+  }
+
   async findAllUsers(search?: string) {
     return this.prisma.user.findMany({
       where: {

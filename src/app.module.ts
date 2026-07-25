@@ -30,6 +30,8 @@ import { ContentNoteModule } from './modules/content-note/content-note.module';
 import { LegalDocumentModule } from './modules/legal-document/legal-document.module';
 import { BannerModule } from './modules/banner/banner.module';
 import { AdminBannerModule } from './modules/admin-banner/admin-banner.module';
+import { EducationModule } from './modules/education/education.module';
+import { AdminEducationModule } from './modules/admin-education/admin-education.module';
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
@@ -61,6 +63,8 @@ import { AdminBannerModule } from './modules/admin-banner/admin-banner.module';
     LegalDocumentModule,
     BannerModule,
     AdminBannerModule,
+    EducationModule,
+    AdminEducationModule,
   ],
   controllers: [],
   providers: [],

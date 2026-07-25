@@ -37,6 +37,25 @@ export class AdminSelectListController {
   }
 
   /**
+   * Get all education levels (id + name)
+   * GET /admin/select-list/education-levels
+   */
+  @Get('education-levels')
+  getEducationLevels() {
+    return this.adminSelectListService.getEducationLevels();
+  }
+
+  /**
+   * Get grades (id + name + educationLevelId), optionally scoped to a level.
+   * Powers the dependent "grade" dropdown in the course and user forms.
+   * GET /admin/select-list/grades?educationLevelId=
+   */
+  @Get('grades')
+  getGrades(@Query('educationLevelId') educationLevelId?: string) {
+    return this.adminSelectListService.getGrades(educationLevelId);
+  }
+
+  /**
    * Get users (id + name + email), optionally filtered by search term.
    * Used by the dashboard "specific users" notification picker.
    * GET /admin/select-list/users?search=

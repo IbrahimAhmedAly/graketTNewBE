@@ -32,7 +32,73 @@ async function main() {
   await prisma.verificationCode.deleteMany();
   await prisma.user.deleteMany();
   await prisma.admin.deleteMany();
+  await prisma.grade.deleteMany();
+  await prisma.educationLevel.deleteMany();
   console.log('✅ Existing data cleaned\n');
+
+  // ============================================
+  // 0. CREATE EDUCATION LEVELS AND GRADES
+  // Students pick a level, then a grade within it. Courses target the same
+  // pair, so the catalogue can be scoped to each student.
+  // ============================================
+  console.log('🎓 Creating education levels and grades...');
+
+  const university = await prisma.educationLevel.create({
+    data: {
+      name: 'University',
+      order: 1,
+      grades: {
+        create: [
+          { name: 'Year 1', order: 1 },
+          { name: 'Year 2', order: 2 },
+          { name: 'Year 3', order: 3 },
+          { name: 'Year 4', order: 4 },
+        ],
+      },
+    },
+    include: { grades: { orderBy: { order: 'asc' } } },
+  });
+
+  const middleSchool = await prisma.educationLevel.create({
+    data: {
+      name: 'Middle School',
+      order: 2,
+      grades: {
+        create: [
+          { name: 'Grade 7', order: 1 },
+          { name: 'Grade 8', order: 2 },
+          { name: 'Grade 9', order: 3 },
+        ],
+      },
+    },
+    include: { grades: { orderBy: { order: 'asc' } } },
+  });
+
+  const primarySchool = await prisma.educationLevel.create({
+    data: {
+      name: 'Primary School',
+      order: 3,
+      grades: {
+        create: [
+          { name: 'Grade 1', order: 1 },
+          { name: 'Grade 2', order: 2 },
+          { name: 'Grade 3', order: 3 },
+          { name: 'Grade 4', order: 4 },
+          { name: 'Grade 5', order: 5 },
+          { name: 'Grade 6', order: 6 },
+        ],
+      },
+    },
+    include: { grades: { orderBy: { order: 'asc' } } },
+  });
+
+  console.log(
+    `✅ Created 3 education levels with ${
+      university.grades.length +
+      middleSchool.grades.length +
+      primarySchool.grades.length
+    } grades\n`,
+  );
 
   // Hash password for all users
   const hashedPassword = await bcrypt.hash('password123', 10);
@@ -43,7 +109,7 @@ async function main() {
   console.log('👤 Creating admins...');
   const admin = await prisma.admin.create({
     data: {
-      email: 'admin@graket.com',
+      email: 'ibrahim.zagglol@gmail.com',
       name: 'Super Admin',
       password: hashedPassword,
     },
@@ -62,6 +128,8 @@ async function main() {
         password: hashedPassword,
         serial: 'SN001',
         status: UserStatus.ACTIVE,
+        educationLevelId: university.id,
+        gradeId: university.grades[0].id, // University / Year 1
       },
     }),
     prisma.user.create({
@@ -71,6 +139,8 @@ async function main() {
         password: hashedPassword,
         serial: 'SN002',
         status: UserStatus.ACTIVE,
+        educationLevelId: university.id,
+        gradeId: university.grades[1].id, // University / Year 2
       },
     }),
     prisma.user.create({
@@ -80,6 +150,8 @@ async function main() {
         password: hashedPassword,
         serial: 'SN003',
         status: UserStatus.ACTIVE,
+        educationLevelId: middleSchool.id,
+        gradeId: middleSchool.grades[0].id, // Middle School / Grade 7
       },
     }),
   ]);
@@ -195,6 +267,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085',
       instructorId: instructors[0].id,
       categoryId: categories[0].id,
+      educationLevelId: university.id,
+      gradeId: university.grades[0].id, // University / Year 1
       price: 499.99,
       discountPrice: 299.99,
       totalDuration: 3600, // 60 hours
@@ -375,6 +449,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
       instructorId: instructors[1].id,
       categoryId: categories[2].id,
+      educationLevelId: university.id,
+      gradeId: university.grades[1].id, // University / Year 2
       price: 599.99,
       discountPrice: 399.99,
       totalDuration: 4200, // 70 hours
@@ -431,6 +507,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c',
       instructorId: instructors[3].id,
       categoryId: categories[1].id,
+      educationLevelId: university.id,
+      gradeId: null, // Whole-level course: open to every university year
       price: 449.99,
       totalDuration: 3000, // 50 hours
       totalVideos: 120,
@@ -478,6 +556,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1561070791-2526d30994b5',
       instructorId: instructors[2].id,
       categoryId: categories[3].id,
+      educationLevelId: middleSchool.id,
+      gradeId: middleSchool.grades[0].id, // Middle School / Grade 7
       price: 349.99,
       discountPrice: 249.99,
       totalDuration: 2400, // 40 hours
@@ -534,6 +614,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40',
       instructorId: instructors[0].id,
       categoryId: categories[4].id,
+      educationLevelId: primarySchool.id,
+      gradeId: primarySchool.grades[0].id, // Primary School / Grade 1
       price: 399.99,
       totalDuration: 2700, // 45 hours
       totalVideos: 100,
@@ -552,6 +634,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479',
       instructorId: instructors[0].id,
       categoryId: categories[0].id,
+      educationLevelId: university.id,
+      gradeId: university.grades[0].id, // University / Year 1
       price: 549.99,
       discountPrice: 349.99,
       totalDuration: 4800, // 80 hours
@@ -1173,7 +1257,7 @@ async function main() {
   console.log(`   - Purchase Codes: 10 (3 used, 6 unused, 1 expired)`);
   console.log(`   - Purchases: 3 (1 course, 2 videos)\n`);
   console.log('🔐 Login credentials:');
-  console.log('   Admin: admin@graket.com / password123');
+  console.log('   Admin: ibrahim.zagglol@gmail.com / password123');
   console.log('   User 1 (Ahmed): ahmed.mohamed@example.com / password123');
   console.log('     → Purchased: Web Development Course (full course)');
   console.log('   User 2 (Fatima): fatima.ali@example.com / password123');

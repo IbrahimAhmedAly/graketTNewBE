@@ -19,6 +19,13 @@ model User {
   serial   String
   status   UserStatus @default(PENDING)
 
+  // Education targeting — student picks a level, then a grade within it.
+  // Nullable so pre-existing users keep working; new users supply both.
+  educationLevelId String?
+  educationLevel   EducationLevel? @relation(fields: [educationLevelId], references: [id])
+  gradeId          String?
+  grade            Grade?          @relation(fields: [gradeId], references: [id])
+
   verificationCodes VerificationCode[]
   enrollments       Enrollment[]
   progress          Progress[]
@@ -37,6 +44,8 @@ model User {
 
   @@index([email])
   @@index([serial])
+  @@index([educationLevelId])
+  @@index([gradeId])
 }
 
 model Admin {
@@ -113,6 +122,48 @@ model Category {
 }
 
 // ============================================
+// EDUCATION LEVEL MODEL (University, Middle School, Primary School)
+// Students pick a level first, then a grade within it.
+// ============================================
+model EducationLevel {
+  id    String  @id @default(uuid())
+  name  String  @unique // "University", "Middle School", "Primary School"
+  order Int     @default(0) // Display order in the level picker
+
+  grades  Grade[]
+  users   User[]
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([order])
+}
+
+// ============================================
+// GRADE MODEL (Year / grade within an education level)
+// e.g. "Year 1" under University, "Grade 7" under Middle School
+// ============================================
+model Grade {
+  id    String @id @default(uuid())
+  name  String // "Year 1", "Grade 7", ...
+  order Int    @default(0) // Display order within the level
+
+  educationLevelId String
+  educationLevel   EducationLevel @relation(fields: [educationLevelId], references: [id], onDelete: Cascade)
+
+  users   User[]
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([educationLevelId, name]) // no duplicate grade names within a level
+  @@index([educationLevelId])
+  @@index([order])
+}
+
+// ============================================
 // COURSE MODEL
 // ============================================
 model Course {
@@ -129,6 +180,14 @@ model Course {
   // Category
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
+
+  // Education targeting.
+  // educationLevelId: which level the course is for (nullable for legacy rows).
+  // gradeId: the specific grade, or null for a course aimed at the whole level.
+  educationLevelId String?
+  educationLevel   EducationLevel? @relation(fields: [educationLevelId], references: [id])
+  gradeId          String?
+  grade            Grade?          @relation(fields: [gradeId], references: [id])
 
   // Pricing
   price            Float     @default(0)
@@ -160,6 +219,8 @@ model Course {
 
   @@index([instructorId])
   @@index([categoryId])
+  @@index([educationLevelId])
+  @@index([gradeId])
   @@index([slug])
   @@index([isPublished])
 }

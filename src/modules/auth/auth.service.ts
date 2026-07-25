@@ -16,6 +16,7 @@ import { VerificationCodeRepository } from './repositories/verification-code.rep
 // Services
 import { JwtTokenService } from '../jwt/jwt.service';
 import { EmailService } from '../email/email.service';
+import { EducationService } from '../education/education.service';
 
 // DTOs
 import {
@@ -43,13 +44,15 @@ export class AuthService {
     private readonly verificationCodeRepository: VerificationCodeRepository,
     private readonly jwtTokenService: JwtTokenService,
     private readonly emailService: EmailService,
+    private readonly educationService: EducationService,
   ) {}
 
   /**
    * Register a new user
    */
   async register(registerDto: RegisterDto) {
-    const { email, password, serial } = registerDto;
+    const { email, password, serial, name, educationLevelId, gradeId } =
+      registerDto;
 
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(email);
@@ -64,15 +67,21 @@ export class AuthService {
       throw new ConflictException('هذا البريد الإلكتروني موجود بالفعل');
     }
 
+    // The grade chosen in step 2 must belong to the level chosen in step 1
+    await this.educationService.assertValidTargeting(educationLevelId, gradeId);
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user with pending status
     const user = await this.userRepository.create({
       email,
+      name,
       password: hashedPassword,
       serial,
       status: UserStatus.PENDING,
+      educationLevel: { connect: { id: educationLevelId } },
+      grade: { connect: { id: gradeId } },
     });
 
     // Generate OTP code
