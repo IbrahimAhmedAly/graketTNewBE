@@ -1,8 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/utils/auth/password.utility';
 
 const prisma = new PrismaClient();
 
+/** Matches the cost factor used by every hash site in src/ (bcrypt.hash(pw, 10)). */
+const SALT_ROUNDS = 10;
+
 const NEW_EMAIL = process.env.NEW_ADMIN_EMAIL ?? 'graketcompany@gmail.com';
+const NEW_PASSWORD = process.env.NEW_ADMIN_PASSWORD ?? 'passAdmin@123';
 const CURRENT_EMAIL = process.env.CURRENT_ADMIN_EMAIL;
 
 function normalize(email: string): string {
@@ -43,24 +48,30 @@ async function main() {
   const newEmail = normalize(NEW_EMAIL);
   const admin = await resolveAdmin();
 
-  if (admin.email === newEmail) {
-    console.log(`Admin ${admin.id} already uses ${newEmail}. Nothing to do.`);
-    return;
-  }
-
-  const taken = await prisma.admin.findUnique({ where: { email: newEmail } });
-  if (taken) {
-    throw new Error(`Email ${newEmail} is already used by admin ${taken.id}`);
+  const emailChanged = admin.email !== newEmail;
+  if (emailChanged) {
+    const taken = await prisma.admin.findUnique({ where: { email: newEmail } });
+    if (taken) {
+      throw new Error(`Email ${newEmail} is already used by admin ${taken.id}`);
+    }
   }
 
   const updated = await prisma.admin.update({
     where: { id: admin.id },
-    data: { email: newEmail },
+    data: {
+      email: newEmail,
+      password: await hashPassword(NEW_PASSWORD, SALT_ROUNDS),
+    },
     select: { id: true, email: true, name: true },
   });
 
   console.log(`Updated admin ${updated.id} (${updated.name ?? 'no name'})`);
-  console.log(`  ${admin.email} -> ${updated.email}`);
+  console.log(
+    emailChanged
+      ? `  email:    ${admin.email} -> ${updated.email}`
+      : `  email:    ${updated.email} (unchanged)`,
+  );
+  console.log('  password: reset');
 }
 
 main()
