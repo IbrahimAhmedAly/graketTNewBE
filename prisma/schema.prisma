@@ -26,6 +26,14 @@ model User {
   gradeId          String?
   grade            Grade?          @relation(fields: [gradeId], references: [id])
 
+  // Guardian contact, used only for parent-facing progress reports.
+  // Nullable: existing students have none, and it is never required to learn.
+  parentPhone String?
+
+  // Set on every successful login. Distinct from updatedAt, which moves on any
+  // profile write and is therefore useless as a "last seen" signal.
+  lastLoginAt DateTime?
+
   verificationCodes VerificationCode[]
   enrollments       Enrollment[]
   progress          Progress[]
@@ -39,6 +47,14 @@ model User {
   courseAnswers     CourseAnswer[]
   contentNotes      ContentNote[]
 
+  // Activity tracking — the raw signal behind every reported statistic.
+  videoWatchProgress VideoWatchProgress[]
+  contentViews       ContentView[]
+  studySessions      StudySession[]
+  dailyActivity      DailyActivity[]
+  stats              StudentStats?
+  badges             StudentBadge[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -46,6 +62,7 @@ model User {
   @@index([serial])
   @@index([educationLevelId])
   @@index([gradeId])
+  @@index([lastLoginAt])
 }
 
 model Admin {
@@ -126,9 +143,9 @@ model Category {
 // Students pick a level first, then a grade within it.
 // ============================================
 model EducationLevel {
-  id    String  @id @default(uuid())
-  name  String  @unique // "University", "Middle School", "Primary School"
-  order Int     @default(0) // Display order in the level picker
+  id    String @id @default(uuid())
+  name  String @unique // "University", "Middle School", "Primary School"
+  order Int    @default(0) // Display order in the level picker
 
   grades  Grade[]
   users   User[]
@@ -190,8 +207,8 @@ model Course {
   grade            Grade?          @relation(fields: [gradeId], references: [id])
 
   // Pricing
-  price            Float     @default(0)
-  discountPrice    Float? // Discounted price if any
+  price             Float     @default(0)
+  discountPrice     Float? // Discounted price if any
   discountExpiresAt DateTime? // When the discount expires (null = no expiry)
 
   // Course meta
@@ -272,6 +289,9 @@ model Content {
   purchases     Purchase[]
   notes         ContentNote[]
 
+  watchProgress VideoWatchProgress[]
+  views         ContentView[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -285,11 +305,11 @@ enum ContentType {
 }
 
 enum CourseStatus {
-  DRAFT          // Just created, no sections yet
+  DRAFT // Just created, no sections yet
   SECTIONS_ADDED // Sections added
-  CONTENT_ADDED  // Content added
-  QUIZ_ADDED     // Quiz added (complete)
-  PUBLISHED      // Published to users
+  CONTENT_ADDED // Content added
+  QUIZ_ADDED // Quiz added (complete)
+  PUBLISHED // Published to users
 }
 
 // ============================================
@@ -321,6 +341,10 @@ model Question {
   questionText String @db.Text
   order        Int // Question order in quiz
   points       Int    @default(1)
+
+  // Optional concept tag ("Integration", "Magnetism"). Drives weak-topic
+  // analysis; when null, reporting falls back to grouping by lesson.
+  topic String?
 
   options     Option[]
   userAnswers UserAnswer[]
@@ -639,15 +663,15 @@ model CourseQuestion {
 }
 
 model CourseAnswer {
-  id         String @id @default(uuid())
+  id         String         @id @default(uuid())
   questionId String
   question   CourseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  body           String  @db.Text
-  isInstructor   Boolean @default(false) // marks answers from the course instructor/admin
+  body         String  @db.Text
+  isInstructor Boolean @default(false) // marks answers from the course instructor/admin
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -714,4 +738,235 @@ model Banner {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@index([isActive])
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  ACTIVITY TRACKING
+//
+//  These models are the raw signal behind every reported statistic. The
+//  reporting layer only ever aggregates what is recorded here — it never
+//  estimates. If a number cannot be derived from these tables, it is not
+//  shown.
+// ════════════════════════════════════════════════════════════════════════
+
+/// Per-video watch state. `watchedSeconds` is the measure of the *union* of
+/// segments actually played, so seeking to the end does not mark a video
+/// watched; the merge happens in the service before this row is written.
+model VideoWatchProgress {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  /// Union of watched intervals, in seconds. Never exceeds durationSec.
+  watchedSeconds Int @default(0)
+
+  /// Where playback stopped, for resume. Not a progress measure — a student
+  /// can be at 00:10 having already watched the whole video.
+  lastPositionSec Int @default(0)
+
+  /// Reported by the player, not admin-entered, so watchPercent is real.
+  /// Null until the first event carries it.
+  durationSec Int?
+
+  /// Materialized watchedSeconds/durationSec so leaderboards and course
+  /// rollups avoid recomputing across every row on read.
+  watchPercent Int @default(0)
+
+  /// Increments when playback restarts after reaching the end.
+  replayCount Int @default(0)
+
+  /// Merged, sorted, non-overlapping [start, end] pairs in seconds.
+  /// Kept so later events extend a true union rather than a running total.
+  segments Json?
+
+  firstWatchedAt DateTime  @default(now())
+  lastWatchedAt  DateTime  @default(now())
+  completedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, contentId])
+  @@index([userId])
+  @@index([contentId])
+  @@index([userId, lastWatchedAt])
+}
+
+/// One row per open of any content item. Unlike Progress (a single terminal
+/// boolean), this preserves repeat opens, which is what "how many times did
+/// they reopen this file" reports actually need.
+model ContentView {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  type ContentType
+
+  /// Foreground time on this item, in seconds.
+  durationSec Int @default(0)
+
+  /// PDF read depth, from the viewer's page callbacks. Null for other types.
+  pagesRead  Int?
+  totalPages Int?
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([contentId])
+  @@index([userId, openedAt])
+  @@index([userId, type])
+}
+
+/// An app-foreground study session, opened on launch/resume and closed on
+/// background or by the idle sweep. Sessions are the only source for
+/// "study hours" — a metric that silently inflates if a backgrounded app is
+/// left counting, hence the explicit heartbeat and server-side timeout.
+model StudySession {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startedAt       DateTime  @default(now())
+  lastHeartbeatAt DateTime  @default(now())
+  endedAt         DateTime?
+
+  /// Elapsed seconds, finalized when the session closes.
+  durationSec Int @default(0)
+
+  /// Seconds already added to the daily rollup while the session was running.
+  ///
+  /// Study time is credited incrementally on each heartbeat so a session in
+  /// progress shows up today rather than only after it closes. Recording what
+  /// has been banked is what makes that safe: every credit adds only the
+  /// difference since the last one, so heartbeats, a client-sent end and the
+  /// idle sweep can all run over the same session without counting a second
+  /// twice.
+  creditedSec Int @default(0)
+
+  /// Minutes offset from UTC on the device. Required to bucket a session into
+  /// the student's own calendar day: a 21:00 session in Cairo belongs to that
+  /// day, not to UTC's next one.
+  tzOffsetMinutes Int @default(0)
+
+  /// False once closed by the idle sweep rather than by the client.
+  closedByClient Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([userId, startedAt])
+  @@index([endedAt])
+}
+
+/// Per-student, per-local-day rollup. Written on ingest so the heat map and
+/// weekly chart are indexed range scans rather than aggregations over every
+/// raw event, and so day-bucketing happens in exactly one place.
+model DailyActivity {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The student's LOCAL calendar day (date-only, no time component).
+  date DateTime @db.Date
+
+  studySeconds  Int @default(0)
+  videosWatched Int @default(0)
+
+  /// Seconds of video genuinely played today (union-merged, so scrubbing does
+  /// not count).
+  ///
+  /// Distinct from `videosWatched`, which only counts videos crossing the 90%
+  /// completion bar. On a two-hour lecture a student can study hard for an hour
+  /// and still finish no video, so completions alone make a real day of work
+  /// look like an empty one.
+  videoSeconds Int @default(0)
+
+  quizzesTaken  Int @default(0)
+  pdfsOpened    Int @default(0)
+  contentsDone  Int @default(0)
+  pointsEarned  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([date])
+}
+
+/// Denormalized per-student totals. Recomputed on ingest so the dashboard,
+/// ranking, and Success Index do not each re-derive them.
+model StudentStats {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  totalPoints       Int @default(0)
+  totalStudySeconds Int @default(0)
+
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastActiveDate DateTime? @db.Date
+
+  /// 0-100. Null until there is enough activity to compute it honestly —
+  /// a fresh account shows "not enough data", never a red 0.
+  successIndex   Int?
+  successIndexAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([totalPoints])
+  @@index([successIndex])
+}
+
+/// Catalogue of earnable badges. Seeded, admin-extensible.
+model Badge {
+  id          String @id @default(uuid())
+  code        String @unique
+  name        String
+  description String
+  icon        String
+
+  /// Machine-readable unlock rule, e.g. { "type": "streak", "threshold": 7 }.
+  criteria Json
+
+  points Int @default(0)
+
+  isActive Boolean @default(true)
+
+  students StudentBadge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([isActive])
+}
+
+/// Join row recording that a student earned a badge, and when.
+model StudentBadge {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  badgeId String
+  badge   Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+  @@index([userId, earnedAt])
 }

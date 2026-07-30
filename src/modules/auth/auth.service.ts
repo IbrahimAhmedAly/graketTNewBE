@@ -227,6 +227,10 @@ export class AuthService {
       email: user.email,
     });
 
+    // Stamp the login. This is the only reliable "last seen" signal — updatedAt
+    // moves on any profile write, so reports cannot use it.
+    await this.userRepository.update(user.id, { lastLoginAt: new Date() });
+
     // Return user data without password
     const { password: _, ...userData } = user;
 

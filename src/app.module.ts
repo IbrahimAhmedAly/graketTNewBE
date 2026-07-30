@@ -1,4 +1,5 @@
 import { Module, MiddlewareConsumer } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { I18nModule } from 'nestjs-i18n';
 import { i18nConfig } from './config/i18n.config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,6 +16,8 @@ import { PurchaseModule } from './modules/purchase/purchase.module';
 import { UserCourseModule } from './modules/user-course/user-course.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ProgressModule } from './modules/progress/progress.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
+import { ReportingModule } from './modules/reporting/reporting.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { AdminCourseModule } from './modules/admin-course/admin-course.module';
 import { AdminSectionModule } from './modules/admin-section/admin-section.module';
@@ -35,6 +38,9 @@ import { AdminEducationModule } from './modules/admin-education/admin-education.
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
+    // Drives the stale-session sweep in TrackingService, which credits study
+    // time for sessions the app never closed (force-quit, lost connection).
+    ScheduleModule.forRoot(),
     PrismaModule,
     JwtModule,
     EmailModule,
@@ -48,6 +54,8 @@ import { AdminEducationModule } from './modules/admin-education/admin-education.
     UserCourseModule,
     NotificationModule,
     ProgressModule,
+    TrackingModule,
+    ReportingModule,
     QuizModule,
     AdminCourseModule,
     AdminSectionModule,

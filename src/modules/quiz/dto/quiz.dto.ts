@@ -33,6 +33,14 @@ export class SubmitQuizDto {
   @IsInt()
   @Min(0)
   timeTaken?: number; // Time taken in seconds
+
+  /**
+   * Device UTC offset in minutes. Determines which local day this attempt is
+   * credited to on the activity chart and toward the study streak.
+   */
+  @IsOptional()
+  @IsInt()
+  tzOffsetMinutes?: number;
 }
 
 export class StartQuizDto {

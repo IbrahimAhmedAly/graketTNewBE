@@ -6,6 +6,7 @@ import {
   PurchaseType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedBadges } from './seeds/badges.seed';
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,14 @@ async function main() {
 
   // Clear existing data (in correct order to avoid foreign key constraints)
   console.log('🗑️  Cleaning existing data...');
+  // Activity tracking first — these reference users and contents.
+  await prisma.studentBadge.deleteMany();
+  await prisma.badge.deleteMany();
+  await prisma.dailyActivity.deleteMany();
+  await prisma.studySession.deleteMany();
+  await prisma.contentView.deleteMany();
+  await prisma.videoWatchProgress.deleteMany();
+  await prisma.studentStats.deleteMany();
   await prisma.userAnswer.deleteMany();
   await prisma.quizAttempt.deleteMany();
   await prisma.option.deleteMany();
@@ -35,6 +44,8 @@ async function main() {
   await prisma.grade.deleteMany();
   await prisma.educationLevel.deleteMany();
   console.log('✅ Existing data cleaned\n');
+
+  await seedBadges(prisma);
 
   // ============================================
   // 0. CREATE EDUCATION LEVELS AND GRADES

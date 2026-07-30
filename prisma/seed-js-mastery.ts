@@ -25,6 +25,32 @@ async function main() {
     throw new Error('No category found. Create one first.');
   }
 
+  // Education targeting: University → Year 4.
+  // Resolved by name rather than hard-coded id so the script survives a
+  // database reset, which regenerates every uuid.
+  const universityLevel = await prisma.educationLevel.findUnique({
+    where: { name: 'University' },
+  });
+  if (!universityLevel) {
+    throw new Error(
+      'Education level "University" not found. Run the main seed first.',
+    );
+  }
+
+  const year4 = await prisma.grade.findUnique({
+    where: {
+      educationLevelId_name: {
+        educationLevelId: universityLevel.id,
+        name: 'Year 4',
+      },
+    },
+  });
+  if (!year4) {
+    throw new Error(
+      'Grade "Year 4" not found under University. Run the main seed first.',
+    );
+  }
+
   // Idempotency: if the course already exists, skip creation
   const existing = await prisma.course.findUnique({
     where: { slug: 'javascript-mastery-full-stack' },
@@ -32,6 +58,20 @@ async function main() {
   if (existing) {
     console.log('⚠️  Course already exists — skipping course creation.');
     console.log(`   Course ID: ${existing.id}\n`);
+
+    // Re-apply the education targeting. Without this the script is a no-op on
+    // an existing row, so a course seeded before targeting was introduced (or
+    // pointed at a different year) would silently keep the old assignment.
+    if (
+      existing.educationLevelId !== universityLevel.id ||
+      existing.gradeId !== year4.id
+    ) {
+      await prisma.course.update({
+        where: { id: existing.id },
+        data: { educationLevelId: universityLevel.id, gradeId: year4.id },
+      });
+      console.log('✅ Updated education targeting → University / Year 4\n');
+    }
 
     // Still ensure the codes exist
     await ensureCodes(existing.id, admin.id);
@@ -48,6 +88,8 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479',
       instructorId: instructor.id,
       categoryId: category.id,
+      educationLevelId: universityLevel.id,
+      gradeId: year4.id,
       price: 549.99,
       discountPrice: 349.99,
       totalDuration: 4800,
@@ -57,7 +99,8 @@ async function main() {
     },
   });
   console.log(`✅ Created course: ${course.title}`);
-  console.log(`   Course ID: ${course.id}\n`);
+  console.log(`   Course ID: ${course.id}`);
+  console.log(`   Targeting: ${universityLevel.name} / ${year4.name}\n`);
 
   // Section 1: JavaScript Fundamentals
   const section1 = await prisma.section.create({
