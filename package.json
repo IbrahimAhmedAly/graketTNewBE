@@ -26,7 +26,8 @@
     "seed": "ts-node prisma/seed.ts",
     "seed:js-mastery": "ts-node prisma/seed-js-mastery.ts",
     "seed:legal": "ts-node prisma/seeds/seed-legal-documents.ts",
-    "wipe:users-codes": "ts-node scripts/wipe-users-and-codes.ts"
+    "wipe:users-codes": "ts-node scripts/wipe-users-and-codes.ts",
+    "admin:update-email": "ts-node scripts/update-admin-email.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
