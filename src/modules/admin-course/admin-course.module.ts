@@ -4,9 +4,10 @@ import { AdminCourseController } from './admin-course.controller';
 import { AdminCourseRepository } from './repositories/admin-course.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { JwtModule } from '../jwt/jwt.module';
+import { EducationModule } from '../education/education.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule],
+  imports: [PrismaModule, JwtModule, EducationModule],
   controllers: [AdminCourseController],
   providers: [AdminCourseService, AdminCourseRepository],
   exports: [AdminCourseService, AdminCourseRepository],

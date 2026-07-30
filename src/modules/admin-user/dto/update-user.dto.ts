@@ -4,6 +4,7 @@ import {
   IsOptional,
   MinLength,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
@@ -24,6 +25,14 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   serial?: string;
+
+  @IsUUID('4')
+  @IsOptional()
+  educationLevelId?: string;
+
+  @IsUUID('4')
+  @IsOptional()
+  gradeId?: string;
 
   @IsEnum(UserStatus)
   @IsOptional()

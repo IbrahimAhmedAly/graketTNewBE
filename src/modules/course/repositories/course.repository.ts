@@ -2,32 +2,63 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
+export interface CourseFilterParams {
+  search?: string;
+  categoryId?: string;
+  instructorId?: string;
+  /** Scope to a single education level */
+  educationLevelId?: string;
+  /**
+   * Scope to a single grade. Courses with no grade (aimed at the whole
+   * level) are included alongside it when a level is also supplied.
+   */
+  gradeId?: string;
+}
+
 @Injectable()
 export class CourseRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(params: {
-    skip: number;
-    take: number;
-    search?: string;
-    categoryId?: string;
-    instructorId?: string;
-  }) {
-    const { skip, take, search, categoryId, instructorId } = params;
+  /**
+   * Shared where-clause for the public catalogue. Kept in one place so the
+   * list and its count can never drift apart.
+   */
+  private buildWhere(params: CourseFilterParams): Prisma.CourseWhereInput {
+    const { search, categoryId, instructorId, educationLevelId, gradeId } =
+      params;
 
-    const where: Prisma.CourseWhereInput = {
+    return {
       isPublished: true,
       ...(categoryId && { categoryId }),
       ...(instructorId && { instructorId }),
+      ...this.educationWhere({ educationLevelId, gradeId }),
       ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { category: { name: { contains: search, mode: 'insensitive' } } },
-          { instructor: { name: { contains: search, mode: 'insensitive' } } },
+        AND: [
+          {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+              { category: { name: { contains: search, mode: 'insensitive' } } },
+              {
+                instructor: {
+                  name: { contains: search, mode: 'insensitive' },
+                },
+              },
+            ],
+          },
         ],
       }),
     };
+  }
+
+  async findAll(
+    params: CourseFilterParams & {
+      skip: number;
+      take: number;
+    },
+  ) {
+    const { skip, take, ...filters } = params;
+    const where = this.buildWhere(filters);
 
     return this.prisma.course.findMany({
       where,
@@ -49,6 +80,18 @@ export class CourseRepository {
             slug: true,
           },
         },
+        educationLevel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        grade: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         reviews: {
           select: {
             rating: true,
@@ -67,28 +110,16 @@ export class CourseRepository {
     });
   }
 
-  async count(params: {
-    search?: string;
-    categoryId?: string;
-    instructorId?: string;
-  }) {
-    const { search, categoryId, instructorId } = params;
+  async count(params: CourseFilterParams) {
+    return this.prisma.course.count({ where: this.buildWhere(params) });
+  }
 
-    const where: Prisma.CourseWhereInput = {
-      isPublished: true,
-      ...(categoryId && { categoryId }),
-      ...(instructorId && { instructorId }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { category: { name: { contains: search, mode: 'insensitive' } } },
-          { instructor: { name: { contains: search, mode: 'insensitive' } } },
-        ],
-      }),
-    };
-
-    return this.prisma.course.count({ where });
+  /** The education targeting the catalogue is scoped to for a given student */
+  async findUserEducation(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { educationLevelId: true, gradeId: true },
+    });
   }
 
   async findById(id: string) {
@@ -109,6 +140,18 @@ export class CourseRepository {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        educationLevel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        grade: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         sections: {
@@ -204,7 +247,30 @@ export class CourseRepository {
     return { reviews, total };
   }
 
-  async getRecommended(userId: string, take: number = 10) {
+  /**
+   * Education scoping as a where-fragment, for the curated lists (popular,
+   * recommended) that don't go through buildWhere.
+   */
+  private educationWhere(
+    params: Pick<CourseFilterParams, 'educationLevelId' | 'gradeId'>,
+  ): Prisma.CourseWhereInput {
+    const { educationLevelId, gradeId } = params;
+    if (gradeId && educationLevelId) {
+      return { OR: [{ gradeId }, { educationLevelId, gradeId: null }] };
+    }
+    if (gradeId) return { gradeId };
+    if (educationLevelId) return { educationLevelId };
+    return {};
+  }
+
+  async getRecommended(
+    userId: string,
+    take: number = 10,
+    education: Pick<
+      CourseFilterParams,
+      'educationLevelId' | 'gradeId'
+    > = {},
+  ) {
     // Get user's enrolled course categories
     const userEnrollments = await this.prisma.enrollment.findMany({
       where: { userId },
@@ -228,6 +294,7 @@ export class CourseRepository {
         ...(enrolledCategoryIds.length > 0 && {
           categoryId: { in: enrolledCategoryIds },
         }),
+        ...this.educationWhere(education),
       },
       include: {
         instructor: {
@@ -244,6 +311,12 @@ export class CourseRepository {
             name: true,
             slug: true,
           },
+        },
+        educationLevel: {
+          select: { id: true, name: true },
+        },
+        grade: {
+          select: { id: true, name: true },
         },
         reviews: {
           select: { rating: true },
@@ -254,9 +327,15 @@ export class CourseRepository {
     });
   }
 
-  async getPopular(take: number = 10) {
+  async getPopular(
+    take: number = 10,
+    education: Pick<
+      CourseFilterParams,
+      'educationLevelId' | 'gradeId'
+    > = {},
+  ) {
     return this.prisma.course.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, ...this.educationWhere(education) },
       include: {
         instructor: {
           select: {
@@ -272,6 +351,12 @@ export class CourseRepository {
             name: true,
             slug: true,
           },
+        },
+        educationLevel: {
+          select: { id: true, name: true },
+        },
+        grade: {
+          select: { id: true, name: true },
         },
         reviews: {
           select: { rating: true },

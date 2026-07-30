@@ -11,19 +11,51 @@ export class CourseService {
     private readonly purchaseRepository: PurchaseRepository,
   ) {}
 
+  /**
+   * Works out which education level/grade the catalogue should be scoped to.
+   *
+   * Precedence: explicit query params > the logged-in student's own level and
+   * grade. `allLevels=true` opts out entirely, and guests (or students who
+   * haven't picked a grade yet) see everything.
+   */
+  private async resolveEducationScope(
+    query: CourseQueryDto,
+    userId?: string,
+  ): Promise<{ educationLevelId?: string; gradeId?: string }> {
+    if (query.allLevels) return {};
+
+    if (query.educationLevelId || query.gradeId) {
+      return {
+        educationLevelId: query.educationLevelId,
+        gradeId: query.gradeId,
+      };
+    }
+
+    if (!userId) return {};
+
+    const user = await this.courseRepository.findUserEducation(userId);
+    if (!user?.educationLevelId && !user?.gradeId) return {};
+
+    return {
+      educationLevelId: user.educationLevelId ?? undefined,
+      gradeId: user.gradeId ?? undefined,
+    };
+  }
+
   async findAll(query: CourseQueryDto, userId?: string) {
     const { page = 1, limit = 10, search, categoryId, instructorId } = query;
     const skip = PaginationUtil.getSkip(page, limit);
+
+    const education = await this.resolveEducationScope(query, userId);
+    const filters = { search, categoryId, instructorId, ...education };
 
     const [courses, totalItems] = await Promise.all([
       this.courseRepository.findAll({
         skip,
         take: limit,
-        search,
-        categoryId,
-        instructorId,
+        ...filters,
       }),
-      this.courseRepository.count({ search, categoryId, instructorId }),
+      this.courseRepository.count(filters),
     ]);
 
     // Get purchase info if user is authenticated
@@ -207,11 +239,17 @@ export class CourseService {
   }
 
   async getRecommended(userId: string, limit: number = 10) {
-    const courses = await this.courseRepository.getRecommended(userId, limit);
+    // Recommendations stay within the student's own level/grade.
+    const education = await this.resolveEducationScope({}, userId);
+    const courses = await this.courseRepository.getRecommended(
+      userId,
+      limit,
+      education,
+    );
 
     // If no recommendations based on categories, get popular courses
     if (courses.length === 0) {
-      return this.getPopular(limit);
+      return this.getPopular(limit, userId);
     }
 
     const transformedCourses = courses.map((course) => {
@@ -235,8 +273,10 @@ export class CourseService {
     };
   }
 
-  async getPopular(limit: number = 10) {
-    const courses = await this.courseRepository.getPopular(limit);
+  async getPopular(limit: number = 10, userId?: string) {
+    // Scoped to the student's level/grade when we know who is asking.
+    const education = await this.resolveEducationScope({}, userId);
+    const courses = await this.courseRepository.getPopular(limit, education);
 
     const transformedCourses = courses.map((course) => {
       const totalReviews = course.reviews.length;

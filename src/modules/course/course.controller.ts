@@ -26,17 +26,20 @@ export class CourseController {
     @Query() query: CourseQueryDto,
     @CurrentUser() user: { id: string } | null,
   ) {
-    console.log('user:', user);
     return this.courseService.findAll(query, user?.id);
   }
 
   /**
-   * Get popular courses
+   * Get popular courses — scoped to the student's level/grade when logged in
    * GET /course/popular
    */
   @Get('popular')
-  async getPopular(@Query('limit') limit?: number) {
-    return this.courseService.getPopular(limit || 10);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getPopular(
+    @CurrentUser() user: { id: string } | null,
+    @Query('limit') limit?: number,
+  ) {
+    return this.courseService.getPopular(limit || 10, user?.id);
   }
 
   /**

@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsInt, Min, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class CourseQueryDto {
@@ -26,4 +33,21 @@ export class CourseQueryDto {
   @IsOptional()
   @IsUUID('4', { message: 'معرف المدرب غير صالح' })
   instructorId?: string;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'معرف المرحلة التعليمية غير صالح' })
+  educationLevelId?: string;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'معرف الصف الدراسي غير صالح' })
+  gradeId?: string;
+
+  /**
+   * Set to true to bypass the automatic scoping to the logged-in student's
+   * level/grade and browse the full catalogue.
+   */
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === 'true')
+  allLevels?: boolean;
 }

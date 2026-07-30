@@ -8,6 +8,7 @@ import {
   MinLength,
   Min,
   IsEnum,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CourseStatus } from '@prisma/client';
@@ -38,6 +39,20 @@ export class CreateCourseDto {
   @IsUUID()
   @IsNotEmpty()
   categoryId: string;
+
+  /** Education level the course targets */
+  @IsUUID()
+  @IsNotEmpty()
+  educationLevelId: string;
+
+  /**
+   * Specific grade within the level.
+   * Omit (or send null) for a course aimed at the whole level.
+   */
+  @IsUUID()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @IsOptional()
+  gradeId?: string | null;
 
   @IsNumber()
   @Type(() => Number)

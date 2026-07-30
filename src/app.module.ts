@@ -1,4 +1,5 @@
 import { Module, MiddlewareConsumer } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { I18nModule } from 'nestjs-i18n';
 import { i18nConfig } from './config/i18n.config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,6 +16,8 @@ import { PurchaseModule } from './modules/purchase/purchase.module';
 import { UserCourseModule } from './modules/user-course/user-course.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ProgressModule } from './modules/progress/progress.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
+import { ReportingModule } from './modules/reporting/reporting.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { AdminCourseModule } from './modules/admin-course/admin-course.module';
 import { AdminSectionModule } from './modules/admin-section/admin-section.module';
@@ -27,9 +30,17 @@ import { UploadModule } from './modules/upload/upload.module';
 import { AdminSelectListModule } from './modules/admin-select-list/admin-select-list.module';
 import { CourseQaModule } from './modules/course-qa/course-qa.module';
 import { ContentNoteModule } from './modules/content-note/content-note.module';
+import { LegalDocumentModule } from './modules/legal-document/legal-document.module';
+import { BannerModule } from './modules/banner/banner.module';
+import { AdminBannerModule } from './modules/admin-banner/admin-banner.module';
+import { EducationModule } from './modules/education/education.module';
+import { AdminEducationModule } from './modules/admin-education/admin-education.module';
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
+    // Drives the stale-session sweep in TrackingService, which credits study
+    // time for sessions the app never closed (force-quit, lost connection).
+    ScheduleModule.forRoot(),
     PrismaModule,
     JwtModule,
     EmailModule,
@@ -43,6 +54,8 @@ import { ContentNoteModule } from './modules/content-note/content-note.module';
     UserCourseModule,
     NotificationModule,
     ProgressModule,
+    TrackingModule,
+    ReportingModule,
     QuizModule,
     AdminCourseModule,
     AdminSectionModule,
@@ -55,6 +68,11 @@ import { ContentNoteModule } from './modules/content-note/content-note.module';
     AdminSelectListModule,
     CourseQaModule,
     ContentNoteModule,
+    LegalDocumentModule,
+    BannerModule,
+    AdminBannerModule,
+    EducationModule,
+    AdminEducationModule,
   ],
   controllers: [],
   providers: [],

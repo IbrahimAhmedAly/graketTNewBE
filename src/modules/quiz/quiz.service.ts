@@ -7,12 +7,18 @@ import {
 import { QuizRepository } from './repositories/quiz.repository';
 import { SubmitQuizDto } from './dto/quiz.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TrackingRepository } from '../tracking/repositories/tracking.repository';
+import { toLocalDay } from '../tracking/utils/local-day.util';
+
+/** Points for completing a quiz attempt, matching the tracking module's scale. */
+const QUIZ_POINTS = 15;
 
 @Injectable()
 export class QuizService {
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly prisma: PrismaService,
+    private readonly trackingRepository: TrackingRepository,
   ) {}
 
   async getQuiz(userId: string, quizId: string) {
@@ -218,6 +224,23 @@ export class QuizService {
 
       return newAttempt;
     });
+
+    // Credit the daily rollup so quizzes appear in the weekly activity chart
+    // and count toward the study streak. Done outside the transaction: a
+    // reporting counter must never be able to roll back a submitted attempt.
+    try {
+      const day = toLocalDay(new Date(), dto.tzOffsetMinutes ?? 0);
+      await this.trackingRepository.incrementDailyActivity(userId, day, {
+        quizzesTaken: 1,
+        pointsEarned: QUIZ_POINTS,
+      });
+      await this.trackingRepository.incrementStatTotals(userId, {
+        points: QUIZ_POINTS,
+      });
+    } catch {
+      // The attempt itself is already saved; losing a counter is recoverable,
+      // failing the submission after the fact is not.
+    }
 
     // Build detailed results
     const results = quiz.questions.map((question) => {

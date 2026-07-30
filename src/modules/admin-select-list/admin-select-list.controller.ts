@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AdminSelectListService } from './admin-select-list.service';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
@@ -34,5 +34,34 @@ export class AdminSelectListController {
   @Get('courses')
   getCourses() {
     return this.adminSelectListService.getCourses();
+  }
+
+  /**
+   * Get all education levels (id + name)
+   * GET /admin/select-list/education-levels
+   */
+  @Get('education-levels')
+  getEducationLevels() {
+    return this.adminSelectListService.getEducationLevels();
+  }
+
+  /**
+   * Get grades (id + name + educationLevelId), optionally scoped to a level.
+   * Powers the dependent "grade" dropdown in the course and user forms.
+   * GET /admin/select-list/grades?educationLevelId=
+   */
+  @Get('grades')
+  getGrades(@Query('educationLevelId') educationLevelId?: string) {
+    return this.adminSelectListService.getGrades(educationLevelId);
+  }
+
+  /**
+   * Get users (id + name + email), optionally filtered by search term.
+   * Used by the dashboard "specific users" notification picker.
+   * GET /admin/select-list/users?search=
+   */
+  @Get('users')
+  getUsers(@Query('search') search?: string) {
+    return this.adminSelectListService.getUsers(search);
   }
 }

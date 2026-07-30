@@ -76,16 +76,12 @@ export class AdminAuthService {
       '10m', // Match OTP expiry time
     );
 
-    // TODO: Send OTP email
-    // await this.emailService.sendAdminLoginOTP(email, otpCode);
-    console.log(
-      `📧 Admin login OTP for ${email}: ${otpCode} (expires in 10 minutes)`,
-    );
+    // Send the OTP by email (same mechanism as the user-facing auth flow)
+    await this.emailService.sendVerificationEmail(email, otpCode);
 
     return {
       message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
       verificationToken,
-      code: otpCode, // Return OTP in response (remove in production)
       expiresIn: '10 minutes',
     };
   }
@@ -207,16 +203,12 @@ export class AdminAuthService {
       '10m',
     );
 
-    // TODO: Send OTP email
-    // await this.emailService.sendAdminLoginOTP(admin.email, otpCode);
-    console.log(
-      `📧 Admin login OTP resent for ${admin.email}: ${otpCode} (expires in 10 minutes)`,
-    );
+    // Send the new OTP by email
+    await this.emailService.sendVerificationEmail(admin.email, otpCode);
 
     return {
       message: 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني',
       verificationToken: newVerificationToken,
-      code: otpCode, // Return OTP in response (remove in production)
       expiresIn: '10 minutes',
     };
   }

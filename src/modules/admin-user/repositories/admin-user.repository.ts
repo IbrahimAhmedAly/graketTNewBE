@@ -7,6 +7,21 @@ import { Prisma } from '@prisma/client';
 export class AdminUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Shared user projection: identity + education targeting */
+  private static readonly baseSelect = {
+    id: true,
+    email: true,
+    name: true,
+    serial: true,
+    status: true,
+    educationLevelId: true,
+    educationLevel: { select: { id: true, name: true } },
+    gradeId: true,
+    grade: { select: { id: true, name: true } },
+    createdAt: true,
+    updatedAt: true,
+  } satisfies Prisma.UserSelect;
+
   async create(data: CreateUserDto, hashedPassword: string) {
     return this.prisma.user.create({
       data: {
@@ -14,17 +29,11 @@ export class AdminUserRepository {
         name: data.name,
         password: hashedPassword,
         serial: data.serial,
+        educationLevelId: data.educationLevelId,
+        gradeId: data.gradeId,
         status: data.status || 'PENDING',
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        serial: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: AdminUserRepository.baseSelect,
     });
   }
 
@@ -64,13 +73,7 @@ export class AdminUserRepository {
           [sortBy]: sortOrder,
         },
         select: {
-          id: true,
-          email: true,
-          name: true,
-          serial: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
+          ...AdminUserRepository.baseSelect,
           _count: {
             select: {
               enrollments: true,
@@ -89,13 +92,7 @@ export class AdminUserRepository {
     return this.prisma.user.findUnique({
       where: { id },
       select: {
-        id: true,
-        email: true,
-        name: true,
-        serial: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        ...AdminUserRepository.baseSelect,
         enrollments: {
           include: {
             course: {
@@ -165,17 +162,13 @@ export class AdminUserRepository {
         ...(data.name !== undefined && { name: data.name }),
         ...(hashedPassword && { password: hashedPassword }),
         ...(data.serial && { serial: data.serial }),
+        ...(data.educationLevelId && {
+          educationLevelId: data.educationLevelId,
+        }),
+        ...(data.gradeId && { gradeId: data.gradeId }),
         ...(data.status && { status: data.status }),
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        serial: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: AdminUserRepository.baseSelect,
     });
   }
 

@@ -28,4 +28,28 @@ export class AdminSelectListService {
       data: courses,
     };
   }
+
+  async getEducationLevels() {
+    const levels = await this.repository.findAllEducationLevels();
+    return {
+      message: 'Education levels retrieved successfully',
+      data: levels,
+    };
+  }
+
+  async getGrades(educationLevelId?: string) {
+    const grades = await this.repository.findAllGrades(educationLevelId);
+    return {
+      message: 'Grades retrieved successfully',
+      data: grades,
+    };
+  }
+
+  async getUsers(search?: string) {
+    const users = await this.repository.findAllUsers(search);
+    return {
+      message: 'Users retrieved successfully',
+      data: users,
+    };
+  }
 }

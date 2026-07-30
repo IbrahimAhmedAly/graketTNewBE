@@ -7,10 +7,14 @@ import { AdminUserRepository } from './repositories/admin-user.repository';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { PaginationUtil } from '../../utils/pagination/pagination.util';
+import { EducationService } from '../education/education.service';
 
 @Injectable()
 export class AdminUserService {
-  constructor(private readonly repository: AdminUserRepository) {}
+  constructor(
+    private readonly repository: AdminUserRepository,
+    private readonly educationService: EducationService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     // Check if email already exists
@@ -26,6 +30,12 @@ export class AdminUserService {
     if (serialExists) {
       throw new ConflictException('Serial already exists');
     }
+
+    // The grade must belong to the chosen education level
+    await this.educationService.assertValidTargeting(
+      createUserDto.educationLevelId,
+      createUserDto.gradeId,
+    );
 
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -92,6 +102,21 @@ export class AdminUserService {
       if (serialExists) {
         throw new ConflictException('Serial already exists');
       }
+    }
+
+    // Validate against the level the user will have after the update, so a
+    // grade-only change is still checked against their existing level.
+    if (updateUserDto.educationLevelId || updateUserDto.gradeId) {
+      const current = await this.repository.findById(id);
+      const effectiveLevelId =
+        updateUserDto.educationLevelId ??
+        current?.educationLevelId ??
+        undefined;
+
+      await this.educationService.assertValidTargeting(
+        effectiveLevelId,
+        updateUserDto.gradeId,
+      );
     }
 
     // Hash password if updating

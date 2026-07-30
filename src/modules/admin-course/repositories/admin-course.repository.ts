@@ -16,6 +16,8 @@ export class AdminCourseRepository {
         thumbnail: data.thumbnail,
         instructorId: data.instructorId,
         categoryId: data.categoryId,
+        educationLevelId: data.educationLevelId,
+        gradeId: data.gradeId ?? null,
         price: data.price || 0,
         discountPrice: data.discountPrice,
         isPublished: data.isPublished || false,
@@ -39,6 +41,18 @@ export class AdminCourseRepository {
             slug: true,
           },
         },
+        educationLevel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        grade: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -50,6 +64,8 @@ export class AdminCourseRepository {
       search,
       categoryId,
       instructorId,
+      educationLevelId,
+      gradeId,
       isPublished,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -73,6 +89,14 @@ export class AdminCourseRepository {
 
     if (instructorId) {
       where.instructorId = instructorId;
+    }
+
+    if (educationLevelId) {
+      where.educationLevelId = educationLevelId;
+    }
+
+    if (gradeId) {
+      where.gradeId = gradeId;
     }
 
     if (isPublished !== undefined) {
@@ -113,6 +137,18 @@ export class AdminCourseRepository {
               slug: true,
             },
           },
+          educationLevel: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          grade: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           _count: {
             select: {
               sections: true,
@@ -146,6 +182,18 @@ export class AdminCourseRepository {
             name: true,
             slug: true,
             description: true,
+          },
+        },
+        educationLevel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        grade: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         sections: {
@@ -196,6 +244,12 @@ export class AdminCourseRepository {
         ...(data.thumbnail !== undefined && { thumbnail: data.thumbnail }),
         ...(data.instructorId && { instructorId: data.instructorId }),
         ...(data.categoryId && { categoryId: data.categoryId }),
+        ...(data.educationLevelId && {
+          educationLevelId: data.educationLevelId,
+        }),
+        // null is meaningful here: it clears the grade (course targets the
+        // whole level), so check for undefined rather than falsiness.
+        ...(data.gradeId !== undefined && { gradeId: data.gradeId }),
         ...(data.price !== undefined && { price: data.price }),
         ...(data.discountPrice !== undefined && {
           discountPrice: data.discountPrice,
@@ -227,6 +281,18 @@ export class AdminCourseRepository {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        educationLevel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        grade: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
