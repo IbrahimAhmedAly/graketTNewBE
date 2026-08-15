@@ -2,7 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReportingRepository } from './repositories/reporting.repository';
 import { ReportingService } from './reporting.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { effectiveStreak, toLocalDay } from '../tracking/utils/local-day.util';
+import { SubscriptionsService } from './student-profile/subscriptions.service';
+import {
+  addDays,
+  effectiveStreak,
+  toLocalDay,
+} from '../tracking/utils/local-day.util';
+
+/** Months of history behind the monthly activity chart. */
+const MONTHLY_WINDOW_MONTHS = 12;
 
 /**
  * Admin-facing reporting.
@@ -16,6 +24,7 @@ export class AdminReportingService {
   constructor(
     private readonly repository: ReportingRepository,
     private readonly reportingService: ReportingService,
+    private readonly subscriptionsService: SubscriptionsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -28,21 +37,42 @@ export class AdminReportingService {
 
     const today = toLocalDay(new Date(), 0);
 
-    const [dashboard, quizAnalytics, watchProgress, views, sessions, stats] =
-      await Promise.all([
-        this.reportingService.getStudentDashboard(userId, 0),
-        this.reportingService.getQuizAnalytics(userId),
-        this.repository.findWatchProgress(userId),
-        this.repository.findContentViews(userId, 100),
-        this.repository.findSessions(userId, undefined, 20),
-        this.repository.findStats(userId),
-      ]);
+    const [
+      dashboard,
+      quizAnalytics,
+      watchProgress,
+      views,
+      sessions,
+      stats,
+      subscriptions,
+      ranking,
+      documentTotals,
+      monthlyDays,
+    ] = await Promise.all([
+      this.reportingService.getStudentDashboard(userId, 0),
+      this.reportingService.getQuizAnalytics(userId),
+      this.repository.findWatchProgress(userId),
+      this.repository.findContentViews(userId, 100),
+      this.repository.findSessions(userId, undefined, 20),
+      this.repository.findStats(userId),
+      this.subscriptionsService.getSubscriptions(userId),
+      // Admins see the raw position; students deliberately never do.
+      this.reportingService.computeRanking(userId, user.grade?.id ?? null),
+      // Open counts come from a grouped aggregate, not from `views` above,
+      // which is capped and would silently undercount an active student.
+      this.repository.groupContentViewCounts(userId, 'PDF'),
+      this.repository.findDailyActivitySince(
+        userId,
+        addDays(today, -(MONTHLY_WINDOW_MONTHS * 31)),
+      ),
+    ]);
 
-    // Titles for the per-video breakdown.
+    // Titles for the per-video and per-document breakdowns.
     const contentIds = [
       ...new Set([
         ...watchProgress.map((w) => w.contentId),
         ...views.map((v) => v.contentId),
+        ...documentTotals.map((d) => d.contentId),
       ]),
     ];
 
@@ -60,14 +90,6 @@ export class AdminReportingService {
     const contentById = new Map(contents.map((c) => [c.id, c]));
 
     const lastSession = sessions[0] ?? null;
-
-    // Views grouped per content, for "how many times was this reopened".
-    const viewsByContent = new Map<string, typeof views>();
-    for (const view of views) {
-      const list = viewsByContent.get(view.contentId) ?? [];
-      list.push(view);
-      viewsByContent.set(view.contentId, list);
-    }
 
     return {
       message: 'Student report retrieved',
@@ -128,32 +150,43 @@ export class AdminReportingService {
           .sort((a, b) => b.watchPercent - a.watchPercent),
 
         // Per-document detail, including how far they read.
-        documentBreakdown: [...viewsByContent.entries()]
-          .filter(([id]) => contentById.get(id)?.type === 'PDF')
-          .map(([id, group]) => {
-            const content = contentById.get(id);
-            const deepest = group.reduce(
-              (max, v) => Math.max(max, v.pagesRead ?? 0),
-              0,
-            );
-            const totalPages = group.find((v) => v.totalPages)?.totalPages ?? null;
+        //
+        // Built from a grouped aggregate rather than from the capped `views`
+        // list: "opened 100 times" and "opened 400 times" must not collapse
+        // into the same figure just because the query had a ceiling.
+        documentBreakdown: documentTotals
+          .map((row) => {
+            const content = contentById.get(row.contentId);
+            const deepest = row._max.pagesRead ?? 0;
+            const totalPages = row._max.totalPages ?? null;
 
             return {
-              contentId: id,
+              contentId: row.contentId,
               title: content?.title ?? 'Unknown',
               course: content?.section?.course?.title ?? null,
-              timesOpened: group.length,
-              totalSeconds: group.reduce((s, v) => s + v.durationSec, 0),
+              timesOpened: row._count._all,
+              totalSeconds: row._sum.durationSec ?? 0,
               pagesRead: deepest,
               totalPages,
+              // Null, not 0, when the viewer never reported a page count —
+              // "we don't know how long the document is" is not "they read
+              // none of it".
               readPercent:
                 totalPages && totalPages > 0
-                  ? Math.round((deepest / totalPages) * 100)
+                  ? Math.round((deepest * 100) / totalPages)
                   : null,
-              lastOpenedAt: group[0]?.openedAt ?? null,
+              lastOpenedAt: row._max.openedAt ?? null,
             };
           })
           .sort((a, b) => b.timesOpened - a.timesOpened),
+
+        // Courses the student is subscribed to. Summary only — the full
+        // enrollment and purchase lists have their own endpoint.
+        subscriptions: subscriptions.data.summary,
+
+        ranking,
+
+        monthlyActivity: this.buildMonthlyActivity(monthlyDays, today),
 
         // Recent activity timeline, newest first.
         timeline: this.buildTimeline(views, sessions, contentById),
@@ -267,6 +300,77 @@ export class AdminReportingService {
         })),
       },
     };
+  }
+
+  /**
+   * Daily rollups aggregated into calendar months, oldest first.
+   *
+   * Zero-filled across the whole window: a month with no activity must render
+   * as an empty bar rather than be dropped, which would compress the axis and
+   * make a three-month gap look like continuous study.
+   *
+   * Seconds are accumulated and converted to minutes once at the end. Rounding
+   * each day before summing would drift by up to half a minute per active day —
+   * around a quarter-hour across a busy month.
+   */
+  private buildMonthlyActivity(
+    days: Awaited<ReturnType<ReportingRepository['findDailyActivitySince']>>,
+    today: Date,
+  ) {
+    const buckets = new Map<
+      string,
+      {
+        month: string;
+        studySeconds: number;
+        videos: number;
+        quizzes: number;
+        pdfsOpened: number;
+        activeDays: number;
+      }
+    >();
+
+    for (let i = MONTHLY_WINDOW_MONTHS - 1; i >= 0; i--) {
+      const start = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1),
+      );
+      const month = start.toISOString().slice(0, 7);
+
+      buckets.set(month, {
+        month,
+        studySeconds: 0,
+        videos: 0,
+        quizzes: 0,
+        pdfsOpened: 0,
+        activeDays: 0,
+      });
+    }
+
+    for (const day of days) {
+      const bucket = buckets.get(day.date.toISOString().slice(0, 7));
+
+      // Older than the window. The query reaches back a little further than 12
+      // months because months are uneven, so a few such rows are expected.
+      if (!bucket) continue;
+
+      bucket.studySeconds += day.studySeconds;
+      bucket.videos += day.videosWatched;
+      bucket.quizzes += day.quizzesTaken;
+      bucket.pdfsOpened += day.pdfsOpened;
+
+      if (
+        day.studySeconds > 0 ||
+        day.videosWatched > 0 ||
+        day.quizzesTaken > 0 ||
+        day.pdfsOpened > 0
+      ) {
+        bucket.activeDays += 1;
+      }
+    }
+
+    return [...buckets.values()].map(({ studySeconds, ...rest }) => ({
+      ...rest,
+      studyMinutes: Math.round(studySeconds / 60),
+    }));
   }
 
   /** Interleaves views and sessions into one reverse-chronological feed. */

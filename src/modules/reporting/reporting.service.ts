@@ -540,7 +540,15 @@ export class ReportingService {
   // Section 10 — ranking
   // ============================================
 
-  private async buildRanking(userId: string, gradeId: string | null) {
+  /**
+   * The student's standing, including their raw position in the cohort.
+   *
+   * Public because an admin is entitled to the exact position — they are
+   * looking at one student's file, not being ranked themselves. The
+   * student-facing path strips `rank` before it leaves this class; see
+   * `percentileBand` for why a student is shown a band and never a number.
+   */
+  async computeRanking(userId: string, gradeId: string | null) {
     const cohort = await this.repository.findCohortStats(gradeId);
     const index = cohort.findIndex((c) => c.userId === userId);
 
@@ -551,6 +559,8 @@ export class ReportingService {
         cohortSize: cohort.length,
         band: null,
         percentile: null,
+        rank: null as number | null,
+        scope: gradeId ? 'grade' : 'all students',
       };
     }
 
@@ -564,17 +574,30 @@ export class ReportingService {
         cohortSize: cohort.length,
         band: null,
         percentile: null,
+        rank: null as number | null,
+        scope: gradeId ? 'grade' : 'all students',
       };
     }
 
-    // Deliberately no raw position. See percentileBand for the reasoning.
     return {
       available: true,
+      reason: null as string | null,
       cohortSize: cohort.length,
       band: band.label,
       percentile: band.percentile,
+      rank: rank as number | null,
       scope: gradeId ? 'grade' : 'all students',
     };
+  }
+
+  private async buildRanking(userId: string, gradeId: string | null) {
+    const { rank, ...withoutRank } = await this.computeRanking(userId, gradeId);
+
+    // Deliberately dropped. See percentileBand for the reasoning: a student at
+    // position 3,199 of 3,200 should not be told so every time they open the app.
+    void rank;
+
+    return withoutRank;
   }
 
   // ============================================
@@ -731,7 +754,7 @@ export class ReportingService {
       .reduce((s, d) => s + d.studySeconds, 0);
 
     if (lastWeek > 0 && thisWeek > 0) {
-      const change = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+      const change = Math.round(((thisWeek - lastWeek) * 100) / lastWeek);
       if (Math.abs(change) >= 10) {
         insights.push({
           type: 'trend',
@@ -792,10 +815,18 @@ export class ReportingService {
   // Helpers
   // ============================================
 
-  /** Integer percentage; 0 when the denominator is zero, never NaN. */
+  /**
+   * Integer percentage; 0 when the denominator is zero, never NaN.
+   *
+   * Multiplies before dividing. `(part / total) * 100` loses to float error at
+   * exact halves — 23/40 evaluates to 57.49999999999999 and rounds DOWN to 57
+   * where SQL `round(100.0*23/40)` gives 58. Sixteen such ratios exist below a
+   * denominator of 400. Since every figure here is cross-checked against SQL,
+   * the two must agree.
+   */
   private percent(part: number, total: number): number {
     if (!total || total <= 0) return 0;
-    return Math.round((part / total) * 100);
+    return Math.round((part * 100) / total);
   }
 
   /** Integer mean; 0 for an empty set. */

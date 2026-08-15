@@ -42,6 +42,20 @@ export class TrackVideoProgressDto {
   positionSec: number;
 
   /**
+   * True once the player has actually run for this open — playback started, or
+   * the student moved the playhead themselves.
+   *
+   * Without an explicit signal, a report carrying no segments is
+   * indistinguishable from a bare re-open, and honouring the latter's
+   * `positionSec: 0` erases the resume point of a video that was watched for
+   * an hour. Optional, and absent from the deployed app — which is why a
+   * report carrying segments counts as playback whether or not this is set.
+   */
+  @IsOptional()
+  @IsBoolean()
+  playbackStarted?: boolean;
+
+  /**
    * Video length as reported by the player. Preferred over the admin-entered
    * `Content.duration` because it reflects the actual media.
    */

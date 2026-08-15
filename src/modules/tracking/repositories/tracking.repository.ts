@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContentType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { normalizeTzOffset } from '../utils/local-day.util';
 
 /** Fields a daily rollup can increment. */
 export interface DailyActivityDelta {
@@ -64,7 +65,7 @@ export class TrackingRepository {
     contentId: string;
     segments: Prisma.InputJsonValue;
     watchedSeconds: number;
-    lastPositionSec: number;
+    lastPositionSec?: number | null;
     durationSec?: number | null;
     watchPercent: number;
     replayIncrement: number;
@@ -87,9 +88,13 @@ export class TrackingRepository {
       update: {
         segments,
         watchedSeconds,
-        lastPositionSec,
         watchPercent,
         lastWatchedAt: new Date(),
+        // Both of these are omitted rather than written when the caller has
+        // nothing new to say. A report from a player that has not run carries
+        // `positionSec: 0` and an admin-entered length, and writing those would
+        // throw away the resume point and the real duration behind it.
+        ...(lastPositionSec != null ? { lastPositionSec } : {}),
         ...(durationSec ? { durationSec } : {}),
         ...(replayIncrement ? { replayCount: { increment: replayIncrement } } : {}),
         // Only ever set completedAt; never clear it. Re-watching a finished
@@ -101,7 +106,7 @@ export class TrackingRepository {
         contentId,
         segments,
         watchedSeconds,
-        lastPositionSec,
+        lastPositionSec: lastPositionSec ?? 0,
         watchPercent,
         durationSec: durationSec ?? null,
         replayCount: replayIncrement,
@@ -145,11 +150,16 @@ export class TrackingRepository {
     userId: string;
     contentId: string;
     day: Date;
+    tzOffsetMinutes: number;
     excludeViewId: string;
   }): Promise<boolean> {
-    const dayStart = new Date(params.day);
-    const dayEnd = new Date(params.day);
-    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+    // `day` is UTC midnight of the student's LOCAL date, so the instants that
+    // belong to it are that window shifted back by the device offset. Scanning
+    // the raw UTC day instead would look at the wrong 24 hours for any student
+    // not on UTC, and credit a document a second time.
+    const offsetMs = normalizeTzOffset(params.tzOffsetMinutes) * 60 * 1000;
+    const dayStart = new Date(params.day.getTime() - offsetMs);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
     const prior = await this.prisma.contentView.findFirst({
       where: {
@@ -165,6 +175,19 @@ export class TrackingRepository {
     return !!prior;
   }
 
+  /**
+   * Closes a view, reporting whether this call is the one that closed it.
+   *
+   * The `closedAt: null` filter is the idempotency guard: only the first `end`
+   * matches a row, so `firstClose` tells the caller whether it may credit.
+   * Concurrent ends resolve the same way — the loser matches nothing. A plain
+   * `update` credits a retry, a double-tap, or a client checkpointing an open
+   * PDF all over again, for one read.
+   *
+   * An already-closed view still takes the new figures: a read that continued
+   * after a checkpoint is longer than the checkpoint saw, and the caller keeps
+   * the values monotonic so a late, smaller report cannot erase it.
+   */
   async closeContentView(params: {
     viewId: string;
     durationSec: number;
@@ -173,15 +196,28 @@ export class TrackingRepository {
   }) {
     const { viewId, durationSec, pagesRead, totalPages } = params;
 
-    return this.prisma.contentView.update({
-      where: { id: viewId },
-      data: {
-        durationSec,
-        closedAt: new Date(),
-        ...(pagesRead != null ? { pagesRead } : {}),
-        ...(totalPages != null ? { totalPages } : {}),
-      },
+    const data = {
+      durationSec,
+      closedAt: new Date(),
+      ...(pagesRead != null ? { pagesRead } : {}),
+      ...(totalPages != null ? { totalPages } : {}),
+    };
+
+    const [closed] = await this.prisma.contentView.updateManyAndReturn({
+      where: { id: viewId, closedAt: null },
+      data,
     });
+
+    if (closed) {
+      return { view: closed, firstClose: true };
+    }
+
+    const view = await this.prisma.contentView.update({
+      where: { id: viewId },
+      data,
+    });
+
+    return { view, firstClose: false };
   }
 
   // ============================================
@@ -205,6 +241,24 @@ export class TrackingRepository {
   /** A session by id, regardless of whether it is still open. */
   async findOpenSessionById(sessionId: string) {
     return this.prisma.studySession.findUnique({ where: { id: sessionId } });
+  }
+
+  /**
+   * The device offset recorded by the session the student was in at [at].
+   *
+   * `StudySession.tzOffsetMinutes` is the only place a device offset is
+   * persisted, and the app opens a session before it opens any content, so
+   * this is the nearest record of where the student actually was when a view
+   * that carries no offset of its own was opened.
+   */
+  async findSessionOffsetAt(userId: string, at: Date): Promise<number | null> {
+    const session = await this.prisma.studySession.findFirst({
+      where: { userId, startedAt: { lte: at } },
+      orderBy: { startedAt: 'desc' },
+      select: { tzOffsetMinutes: true },
+    });
+
+    return session?.tzOffsetMinutes ?? null;
   }
 
   async createSession(userId: string, tzOffsetMinutes: number) {

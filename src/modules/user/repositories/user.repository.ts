@@ -1,87 +1,65 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, UserStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-const USER_SELECT = {
+/**
+ * The exact projection both profile endpoints return.
+ *
+ * `password` and `serial` are deliberately absent — they must never leave the
+ * API. Level/grade are exposed as nested `{ id, name }` objects only, so the
+ * raw foreign keys never appear in the payload.
+ */
+const PROFILE_SELECT = {
   id: true,
-  name: true,
   email: true,
+  name: true,
+  parentPhone: true,
   status: true,
+  educationLevel: { select: { id: true, name: true } },
+  grade: { select: { id: true, name: true } },
   createdAt: true,
-  updatedAt: true,
-  _count: {
-    select: {
-      enrollments: true,
-      purchases: true,
-    },
-  },
+  lastLoginAt: true,
 } satisfies Prisma.UserSelect;
+
+/** Fields a student is allowed to change on their own profile. */
+export interface UpdateProfileData {
+  name?: string;
+  parentPhone?: string | null;
+  educationLevelId?: string;
+  gradeId?: string;
+}
 
 @Injectable()
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(params: {
-    skip: number;
-    take: number;
-    search?: string;
-    status?: UserStatus;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) {
-    const { skip, take, search, status, sortBy = 'createdAt', sortOrder = 'desc' } = params;
-
-    const where: Prisma.UserWhereInput = {
-      ...(status && { status }),
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-    };
-
-    return this.prisma.user.findMany({
-      where,
-      select: USER_SELECT,
-      skip,
-      take,
-      orderBy: { [sortBy]: sortOrder },
+  /** The signed-in student's profile, or null when the row is gone. */
+  async findProfileById(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: PROFILE_SELECT,
     });
   }
 
-  async count(params: { search?: string; status?: UserStatus }) {
-    const { search, status } = params;
-
-    const where: Prisma.UserWhereInput = {
-      ...(status && { status }),
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-    };
-
-    return this.prisma.user.count({ where });
-  }
-
-  async findById(id: string) {
-    return this.prisma.user.findUnique({
+  /**
+   * Applies a partial profile update. Only keys present on `data` are written,
+   * so an omitted field keeps its current value while an explicit `null`
+   * parentPhone clears it.
+   */
+  async updateProfile(id: string, data: UpdateProfileData) {
+    return this.prisma.user.update({
       where: { id },
-      select: {
-        ...USER_SELECT,
-        enrollments: {
-          select: {
-            course: {
-              select: { id: true, title: true, thumbnail: true },
-            },
-            enrolledAt: true,
-          },
-          orderBy: { enrolledAt: 'desc' },
-          take: 5,
-        },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.parentPhone !== undefined && {
+          parentPhone: data.parentPhone,
+        }),
+        ...(data.educationLevelId !== undefined && {
+          educationLevelId: data.educationLevelId,
+        }),
+        ...(data.gradeId !== undefined && { gradeId: data.gradeId }),
       },
+      select: PROFILE_SELECT,
     });
   }
 }

@@ -26,6 +26,7 @@ import {
   ForgotPasswordDto,
   VerifyResetCodeDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   RefreshTokenDto,
 } from './dto';
 
@@ -398,6 +399,53 @@ export class AuthService {
       message: 'تم إعادة تعيين كلمة المرور بنجاح',
       accessToken: tokens.access.token,
       refreshToken: tokens.refresh?.token,
+    };
+  }
+
+  /**
+   * Change password for an already authenticated user.
+   * Unlike resetPassword, there is no OTP/reset token here — the caller proves
+   * ownership of the account with the JWT plus the current password.
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    // Check if passwords match (cheapest check first, no DB hit needed)
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('كلمات المرور غير متطابقة');
+    }
+
+    // Find user
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('المستخدم غير موجود');
+    }
+
+    // Validate the current password. A distinct message is safe here: the
+    // caller is already authenticated as this user, so nothing is leaked.
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('كلمة المرور الحالية غير صحيحة');
+    }
+
+    // The new password must actually be a change
+    if (newPassword === currentPassword) {
+      throw new BadRequestException(
+        'كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية',
+      );
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await this.userRepository.updatePassword(user.id, hashedPassword);
+
+    return {
+      message: 'تم تغيير كلمة المرور بنجاح',
     };
   }
 

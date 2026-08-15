@@ -81,12 +81,26 @@ export class TrackingService {
       dto.contentId,
     );
 
+    // Whether this report speaks for a player that actually ran. A bare
+    // re-open sends `segments: []` with `positionSec: 0` and whatever length it
+    // has to hand — usually the admin estimate, before the media is measured —
+    // and taking that at face value wipes the resume point and the real
+    // duration. Segments alone still count as playback: the deployed app does
+    // not send `playbackStarted`, and a report carrying played intervals is
+    // proof of playback on its own.
+    const hasPlayed = dto.segments.length > 0 || dto.playbackStarted === true;
+
     // Prefer the player-reported duration; fall back to the admin-entered
     // minutes on Content, which is the only other source and is often absent.
+    // A stored length is never replaced by a report that played nothing —
+    // it is the denominator of every watchPercent for this video, and a
+    // measured length must not lose to an estimate.
     const durationSec =
-      dto.durationSec ??
-      existing?.durationSec ??
-      (content.duration ? content.duration * 60 : undefined);
+      !hasPlayed && existing?.durationSec != null
+        ? existing.durationSec
+        : (dto.durationSec ??
+          existing?.durationSec ??
+          (content.duration ? content.duration * 60 : undefined));
 
     const stored = parseStoredSegments(existing?.segments);
     const incoming: WatchSegment[] = dto.segments.map((s) => ({
@@ -110,7 +124,9 @@ export class TrackingService {
       contentId: dto.contentId,
       segments: segments as unknown as Prisma.InputJsonValue,
       watchedSeconds,
-      lastPositionSec: dto.positionSec,
+      // Left untouched when nothing played, so re-opening a video does not
+      // reset the student to the beginning of an hour they already watched.
+      lastPositionSec: hasPlayed ? dto.positionSec : undefined,
       durationSec,
       watchPercent: percent,
       replayIncrement: dto.isReplay ? 1 : 0,
@@ -220,6 +236,14 @@ export class TrackingService {
    *
    * The client's reported duration is capped at the real elapsed time since
    * the view opened — a client cannot claim more minutes than have passed.
+   *
+   * Idempotent: only the call that actually closes the view credits anything.
+   * A retry, a double-tap, or an app checkpointing an open PDF as it is
+   * backgrounded all arrive here, and each one used to add another PDF read
+   * and another five points for a document the student read once — points that
+   * feed the Success Index and the ranking. The figures still move on a repeat
+   * call, because a read that continued past a checkpoint is longer than the
+   * checkpoint saw; they only ever move upwards.
    */
   async endContentView(userId: string, dto: EndContentViewDto) {
     const view = await this.repository.findContentView(dto.viewId);
@@ -236,21 +260,32 @@ export class TrackingService {
       0,
       Math.floor((Date.now() - view.openedAt.getTime()) / 1000),
     );
-    const durationSec = Math.min(dto.durationSec, elapsedSec);
+    const durationSec = Math.max(
+      view.durationSec,
+      Math.min(dto.durationSec, elapsedSec),
+    );
 
-    // Read depth cannot exceed the document.
+    // Read depth cannot exceed the document, and only ever grows: `pagesRead`
+    // is the deepest page reached, so a later report that saw less of the file
+    // than an earlier one must not shrink it.
     const totalPages = dto.totalPages ?? view.totalPages ?? null;
-    const pagesRead =
+    const reportedPages =
       dto.pagesRead != null && totalPages != null
         ? Math.min(dto.pagesRead, totalPages)
         : dto.pagesRead;
+    const pagesRead =
+      reportedPages != null
+        ? Math.max(reportedPages, view.pagesRead ?? 0)
+        : reportedPages;
 
-    const closed = await this.repository.closeContentView({
-      viewId: dto.viewId,
-      durationSec,
-      pagesRead,
-      totalPages,
-    });
+    const { view: closed, firstClose } = await this.repository.closeContentView(
+      {
+        viewId: dto.viewId,
+        durationSec,
+        pagesRead,
+        totalPages,
+      },
+    );
 
     // Credit a PDF read once per document per day.
     //
@@ -259,13 +294,18 @@ export class TrackingService {
     // the same as "didn't read it". The anti-gaming guard belongs on repeat
     // crediting instead — reopening the same file ten times is still one read,
     // which is what `alreadyCredited` enforces.
-    if (view.type === 'PDF') {
-      const day = toLocalDay(view.openedAt, 0);
+    if (view.type === 'PDF' && firstClose) {
+      const tzOffsetMinutes = await this.resolveViewOffset(
+        view,
+        dto.tzOffsetMinutes,
+      );
+      const day = toLocalDay(view.openedAt, tzOffsetMinutes);
 
       const alreadyCredited = await this.repository.hasCreditedContentToday({
         userId,
         contentId: view.contentId,
         day,
+        tzOffsetMinutes,
         excludeViewId: view.id,
       });
 
@@ -280,15 +320,47 @@ export class TrackingService {
       }
     }
 
+    // A repeat call is a success, not a failure: the work it is asking for has
+    // already been done. It reports the view it actually touched and says so,
+    // so a client can tell "recorded" from "recorded earlier" instead of
+    // guessing that its retry was the one that counted.
     return {
-      message: 'Content view recorded',
+      message: firstClose
+        ? 'Content view recorded'
+        : 'Content view already recorded',
       data: {
         viewId: closed.id,
         durationSec: closed.durationSec,
         pagesRead: closed.pagesRead,
         totalPages: closed.totalPages,
+        alreadyClosed: !firstClose,
       },
     };
+  }
+
+  /**
+   * The device offset a content view's credit should be bucketed by.
+   *
+   * `ContentView` has no column for the offset the client sends at `start`, so
+   * it is recovered in order of trustworthiness: what the client sends at
+   * `end`, else the offset of the study session the student was in when the
+   * view opened — same device, same trip. UTC is the last resort, and it is
+   * exactly the assumption that files a 01:00 read in Cairo under yesterday.
+   */
+  private async resolveViewOffset(
+    view: { userId: string; openedAt: Date },
+    reported?: number,
+  ): Promise<number> {
+    if (typeof reported === 'number') {
+      return normalizeTzOffset(reported);
+    }
+
+    const sessionOffset = await this.repository.findSessionOffsetAt(
+      view.userId,
+      view.openedAt,
+    );
+
+    return normalizeTzOffset(sessionOffset);
   }
 
   // ============================================

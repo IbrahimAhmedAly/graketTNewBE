@@ -1,28 +1,42 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
-import { UserQueryDto } from './dto';
-import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
+import { UpdateProfileDto } from './dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
-@Controller('admin/users')
-@UseGuards(AdminAuthGuard)
+/**
+ * Student self-service profile. Admin user management lives in
+ * `admin-user` (admin/users) — nothing admin-facing belongs here.
+ */
+@Controller('user')
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   /**
-   * Get all users with pagination and filters
-   * GET /users?page=1&limit=10&search=john&status=ACTIVE
+   * Get the signed-in student's profile
+   * GET /user/me
    */
-  @Get()
-  async findAll(@Query() query: UserQueryDto) {
-    return this.userService.findAll(query);
+  @Get('me')
+  async getMe(@Request() req: { user: { id: string } }) {
+    return this.userService.getProfile(req.user.id);
   }
 
   /**
-   * Get user by ID
-   * GET /users/:id
+   * Update the signed-in student's profile
+   * PATCH /user/me
    */
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  @Patch('me')
+  async updateMe(
+    @Request() req: { user: { id: string } },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.userService.updateProfile(req.user.id, dto);
   }
 }

@@ -97,6 +97,29 @@ export class ReportingRepository {
     });
   }
 
+  /**
+   * True per-document open counts and dwell totals.
+   *
+   * Aggregated in the database rather than by counting rows returned from
+   * `findContentViews`, which takes a `take` limit: a student past that limit
+   * would have every open count silently truncated, and "opened 100 times"
+   * would be indistinguishable from "opened 400 times". `groupBy` here has no
+   * ceiling, so the figure is the real one however active the student is.
+   *
+   * Filtered on the local `type` column, not through a relation, so it is not
+   * exposed to the Prisma ambiguous-column fault that afflicts grouped
+   * aggregates behind a join.
+   */
+  async groupContentViewCounts(userId: string, type?: 'VIDEO' | 'PDF' | 'QUIZ') {
+    return this.prisma.contentView.groupBy({
+      by: ['contentId'],
+      where: { userId, ...(type ? { type } : {}) },
+      _count: { _all: true },
+      _sum: { durationSec: true },
+      _max: { openedAt: true, pagesRead: true, totalPages: true },
+    });
+  }
+
   /** Distinct PDFs the student has opened at least once. */
   async countDistinctPdfsOpened(userId: string): Promise<number> {
     const rows = await this.prisma.contentView.findMany({
@@ -189,6 +212,27 @@ export class ReportingRepository {
     return this.prisma.dailyActivity.findMany({
       where: { userId, date: { gte: from, lte: to } },
       orderBy: { date: 'asc' },
+    });
+  }
+
+  /**
+   * Daily rollups from a date onward, for month-level aggregation.
+   *
+   * Returns days rather than pre-grouped months because the month a day belongs
+   * to is a question about the student's local calendar, and only the caller
+   * knows their offset. Grouping in SQL would silently bucket by UTC.
+   */
+  async findDailyActivitySince(userId: string, from: Date) {
+    return this.prisma.dailyActivity.findMany({
+      where: { userId, date: { gte: from } },
+      orderBy: { date: 'asc' },
+      select: {
+        date: true,
+        studySeconds: true,
+        videosWatched: true,
+        quizzesTaken: true,
+        pdfsOpened: true,
+      },
     });
   }
 

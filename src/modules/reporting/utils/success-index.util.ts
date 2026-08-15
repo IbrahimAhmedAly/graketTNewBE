@@ -179,7 +179,8 @@ export function percentileBand(
   if (cohortSize < 5 || rank < 1) return null;
 
   // Share of the cohort at or below this student.
-  const percentile = Math.round(((cohortSize - rank + 1) / cohortSize) * 100);
+  // Multiplied before dividing; see ReportingService.percent for why.
+  const percentile = Math.round(((cohortSize - rank + 1) * 100) / cohortSize);
 
   let label: string;
   if (percentile >= 99) label = 'Top 1%';

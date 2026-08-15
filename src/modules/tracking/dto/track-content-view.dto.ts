@@ -21,6 +21,13 @@ export class StartContentViewDto {
   @Min(0)
   totalPages?: number;
 
+  /**
+   * Device UTC offset in minutes.
+   *
+   * Recorded here for symmetry with the other ingest DTOs, but `ContentView`
+   * has no column to carry it to the moment credit is awarded, so the offset
+   * that actually decides the day is the one on `EndContentViewDto`.
+   */
   @IsOptional()
   @IsInt()
   tzOffsetMinutes?: number;
@@ -49,4 +56,17 @@ export class EndContentViewDto {
   @IsInt()
   @Min(0)
   totalPages?: number;
+
+  /**
+   * Device UTC offset in minutes, repeated from `start` because this is where
+   * the PDF read is credited and the view row cannot carry it across.
+   *
+   * A read at 01:00 in Cairo belongs to that day on the student's heat map,
+   * not to UTC's previous one. Optional so the deployed app keeps working:
+   * without it the server falls back to the offset of the study session that
+   * was open when the view was opened.
+   */
+  @IsOptional()
+  @IsInt()
+  tzOffsetMinutes?: number;
 }

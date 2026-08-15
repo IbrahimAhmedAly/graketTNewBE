@@ -35,6 +35,7 @@ import { BannerModule } from './modules/banner/banner.module';
 import { AdminBannerModule } from './modules/admin-banner/admin-banner.module';
 import { EducationModule } from './modules/education/education.module';
 import { AdminEducationModule } from './modules/admin-education/admin-education.module';
+import { UserModule } from './modules/user/user.module';
 @Module({
   imports: [
     I18nModule.forRoot(i18nConfig),
@@ -73,6 +74,7 @@ import { AdminEducationModule } from './modules/admin-education/admin-education.
     AdminBannerModule,
     EducationModule,
     AdminEducationModule,
+    UserModule,
   ],
   controllers: [],
   providers: [],

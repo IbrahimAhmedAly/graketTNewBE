@@ -4,8 +4,10 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Request,
 } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
@@ -16,8 +18,10 @@ import {
   ForgotPasswordDto,
   VerifyResetCodeDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   RefreshTokenDto,
 } from './dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 /**
  * Auth Controller
@@ -86,6 +90,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  /**
+   * Change password for the logged-in user
+   * POST /auth/change-password
+   *
+   * The guard is applied per-method on purpose: every other route on this
+   * controller is intentionally unauthenticated.
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Request() req: { user: { id: string } },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(
+      req.user.id,
+      changePasswordDto,
+    );
   }
 
   /**
