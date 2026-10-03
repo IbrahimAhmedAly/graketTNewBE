@@ -10,9 +10,15 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { AdminUserService } from './admin-user.service';
-import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  QueryUserDto,
+  AssignCoursesDto,
+} from './dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 @Controller('admin/users')
@@ -82,6 +88,24 @@ export class AdminUserController {
   @Post(':id/activate')
   activate(@Param('id') id: string) {
     return this.adminUserService.activateUser(id);
+  }
+
+  /**
+   * Assign courses to user (same access as redeeming a code)
+   * POST /admin/users/:id/courses
+   */
+  @Post(':id/courses')
+  @HttpCode(HttpStatus.OK)
+  assignCourses(
+    @Request() req: { admin: { id: string } },
+    @Param('id') id: string,
+    @Body() assignCoursesDto: AssignCoursesDto,
+  ) {
+    return this.adminUserService.assignCourses(
+      id,
+      req.admin.id,
+      assignCoursesDto,
+    );
   }
 
   /**

@@ -149,6 +149,7 @@ export class AdminQuizRepository {
         data: {
           quizId,
           questionText: data.questionText,
+          imageUrl: data.imageUrl ?? null,
           order: data.order,
           points: data.points,
         },
@@ -183,6 +184,7 @@ export class AdminQuizRepository {
           data: {
             quizId,
             questionText: data.questionText,
+            imageUrl: data.imageUrl ?? null,
             order: data.order,
             points: data.points,
           },
@@ -217,6 +219,7 @@ export class AdminQuizRepository {
           data: {
             quizId,
             questionText: data.questionText,
+            imageUrl: data.imageUrl ?? null,
             order: data.order,
             points: data.points,
           },
@@ -270,6 +273,8 @@ export class AdminQuizRepository {
         where: { id },
         data: {
           ...(data.questionText && { questionText: data.questionText }),
+          // undefined leaves the image as it is; null removes it
+          ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
           ...(data.order !== undefined && { order: data.order }),
           ...(data.points !== undefined && { points: data.points }),
         },
@@ -459,6 +464,8 @@ export class AdminQuizRepository {
           where: { id },
           data: {
             ...(data.questionText && { questionText: data.questionText }),
+            // undefined leaves the image as it is; null removes it
+            ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
             ...(data.order !== undefined && { order: data.order }),
             ...(data.points !== undefined && { points: data.points }),
           },

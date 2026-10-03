@@ -16,9 +16,13 @@ import {
   BulkCreateQuestionsDto,
   BulkUpdateQuestionsDto,
   BulkDeleteQuestionsDto,
+  QUESTION_IMAGE_URL_MAX_LENGTH,
+  isValidQuestionImageUrl,
 } from './dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseStatusUtil } from '../../utils/course-status';
+
+const INVALID_IMAGE_URL = `imageUrl must be an http(s) URL of at most ${QUESTION_IMAGE_URL_MAX_LENGTH} characters`;
 
 @Injectable()
 export class AdminQuizService {
@@ -202,6 +206,7 @@ export class AdminQuizService {
       quizId: question.quizId,
       data: {
         questionText: question.questionText,
+        imageUrl: question.imageUrl,
         order: question.order,
         points: question.points,
         correctOptionIndex: question.correctOptionIndex,
@@ -255,6 +260,11 @@ export class AdminQuizService {
       updateQuestionDto.correctOptionIndex >= updateQuestionDto.options.length
     ) {
       throw new BadRequestException('Correct option index is out of bounds');
+    }
+
+    // Checked here because this route's body skips the DTO validation
+    if (!isValidQuestionImageUrl(updateQuestionDto.imageUrl)) {
+      throw new BadRequestException(INVALID_IMAGE_URL);
     }
 
     const question = await this.repository.updateQuestion(
@@ -390,6 +400,13 @@ export class AdminQuizService {
           `Correct option index is out of bounds for question ID: ${question.id}`,
         );
       }
+
+      // Checked here because this route's body skips the DTO validation
+      if (!isValidQuestionImageUrl(question.imageUrl)) {
+        throw new BadRequestException(
+          `${INVALID_IMAGE_URL} for question ID: ${question.id}`,
+        );
+      }
     }
 
     // Update questions
@@ -397,6 +414,7 @@ export class AdminQuizService {
       id: question.id,
       data: {
         questionText: question.questionText,
+        imageUrl: question.imageUrl,
         order: question.order,
         points: question.points,
         options: question.options,

@@ -4,7 +4,13 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { AdminUserRepository } from './repositories/admin-user.repository';
-import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  QueryUserDto,
+  AssignCoursesDto,
+} from './dto';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PaginationUtil } from '../../utils/pagination/pagination.util';
 import { EducationService } from '../education/education.service';
@@ -166,5 +172,64 @@ export class AdminUserService {
 
   async activateUser(id: string) {
     return this.update(id, { status: 'ACTIVE' });
+  }
+
+  /**
+   * Give the student full access to courses, exactly as if they had
+   * redeemed a code for each one.
+   */
+  async assignCourses(
+    id: string,
+    adminId: string,
+    assignCoursesDto: AssignCoursesDto,
+  ) {
+    const { courseIds } = assignCoursesDto;
+
+    const exists = await this.repository.exists(id);
+    if (!exists) {
+      throw new NotFoundException('User not found');
+    }
+
+    const courses = await this.repository.findCoursesByIds(courseIds);
+    const titles = new Map(courses.map((course) => [course.id, course.title]));
+    const missing = courseIds.filter((courseId) => !titles.has(courseId));
+    if (missing.length > 0) {
+      throw new NotFoundException(`Course not found: ${missing.join(', ')}`);
+    }
+
+    let assignedIds: string[];
+    try {
+      assignedIds = await this.repository.assignCourses(id, adminId, courseIds);
+    } catch (error) {
+      // Another request gave the student one of these courses meanwhile.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'The courses changed during the assignment. Please try again',
+        );
+      }
+      throw error;
+    }
+
+    // Both lists keep the order the courses were sent in.
+    const assigned = new Set(assignedIds);
+    const toCourse = (courseId: string) => ({
+      courseId,
+      courseTitle: titles.get(courseId),
+    });
+
+    return {
+      message: 'Courses assigned',
+      data: {
+        assigned: courseIds
+          .filter((courseId) => assigned.has(courseId))
+          .map(toCourse),
+        alreadyAssigned: courseIds
+          .filter((courseId) => !assigned.has(courseId))
+          .map(toCourse),
+      },
+    };
   }
 }

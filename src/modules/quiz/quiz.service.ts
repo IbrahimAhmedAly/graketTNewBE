@@ -61,6 +61,7 @@ export class QuizService {
         questions: quiz.questions.map((q) => ({
           id: q.id,
           questionText: q.questionText,
+          imageUrl: q.imageUrl,
           order: q.order,
           points: q.points,
           options: q.options,
@@ -255,6 +256,7 @@ export class QuizService {
       return {
         questionId: question.id,
         questionText: question.questionText,
+        imageUrl: question.imageUrl,
         points: question.points,
         isCorrect: userAnswer?.isCorrect || false,
         selectedOption: selectedOption
@@ -310,6 +312,7 @@ export class QuizService {
       return {
         questionId: question.id,
         questionText: question.questionText,
+        imageUrl: question.imageUrl,
         points: question.points,
         isCorrect: userAnswer?.isCorrect || false,
         selectedOption: userAnswer?.selectedOption

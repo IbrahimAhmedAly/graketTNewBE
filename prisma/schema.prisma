@@ -357,6 +357,10 @@ model Question {
   // analysis; when null, reporting falls back to grouping by lesson.
   topic String?
 
+  // Optional picture shown above the question text. S3 public URL, uploaded
+  // via /upload/generate-url first; null when the question has none.
+  imageUrl String?
+
   options     Option[]
   userAnswers UserAnswer[]
 
