@@ -56,3 +56,6 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Protected content private key (see scripts/generate-content-key.ts). Back it up; never commit it.
+content-private.key

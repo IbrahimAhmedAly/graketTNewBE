@@ -104,6 +104,32 @@ export class S3Service {
   }
 
   /**
+   * Read bytes [start, end] (inclusive) of an object.
+   *
+   * Used to read the header of a protected file without downloading the
+   * file, which can be gigabytes.
+   */
+  async getObjectRange(
+    fileKey: string,
+    start: number,
+    end: number,
+  ): Promise<Buffer> {
+    const response = await this.s3Client.send(
+      new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: fileKey,
+        Range: `bytes=${start}-${end}`,
+      }),
+    );
+
+    if (!response.Body) {
+      throw new BadRequestException('File is empty');
+    }
+
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /**
    * Delete a file from S3
    */
   async deleteFile(fileKey: string): Promise<void> {
@@ -185,6 +211,8 @@ export class S3Service {
       // Archives
       'application/zip',
       'application/x-rar-compressed',
+      // Protected files for the desktop player (.gkv / .gkd)
+      'application/octet-stream',
     ];
 
     if (!allowedTypes.includes(contentType)) {

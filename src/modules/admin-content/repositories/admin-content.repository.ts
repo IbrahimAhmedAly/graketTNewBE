@@ -16,6 +16,7 @@ export class AdminContentRepository {
         videoUrl: data.videoUrl,
         pdfUrl: data.pdfUrl,
         fileSize: data.fileSize,
+        encryptedFileUrl: data.encryptedFileUrl,
         sectionId,
       },
       include: {
@@ -49,6 +50,7 @@ export class AdminContentRepository {
             videoUrl: data.videoUrl,
             pdfUrl: data.pdfUrl,
             fileSize: data.fileSize,
+            encryptedFileUrl: data.encryptedFileUrl,
             sectionId,
           },
           include: {
@@ -86,6 +88,7 @@ export class AdminContentRepository {
             videoUrl: data.videoUrl,
             pdfUrl: data.pdfUrl,
             fileSize: data.fileSize,
+            encryptedFileUrl: data.encryptedFileUrl,
             sectionId,
           },
           include: {
@@ -153,6 +156,9 @@ export class AdminContentRepository {
         ...(data.videoUrl !== undefined && { videoUrl: data.videoUrl }),
         ...(data.pdfUrl !== undefined && { pdfUrl: data.pdfUrl }),
         ...(data.fileSize !== undefined && { fileSize: data.fileSize }),
+        ...(data.encryptedFileUrl !== undefined && {
+          encryptedFileUrl: data.encryptedFileUrl,
+        }),
       },
       include: {
         section: {
@@ -177,6 +183,9 @@ export class AdminContentRepository {
           ...(data.videoUrl !== undefined && { videoUrl: data.videoUrl }),
           ...(data.pdfUrl !== undefined && { pdfUrl: data.pdfUrl }),
           ...(data.fileSize !== undefined && { fileSize: data.fileSize }),
+          ...(data.encryptedFileUrl !== undefined && {
+            encryptedFileUrl: data.encryptedFileUrl,
+          }),
         },
         include: {
           section: {

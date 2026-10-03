@@ -28,7 +28,8 @@
     "seed:year4": "ts-node prisma/seed-year4-courses.ts",
     "seed:legal": "ts-node prisma/seeds/seed-legal-documents.ts",
     "wipe:users-codes": "ts-node scripts/wipe-users-and-codes.ts",
-    "admin:update-email": "ts-node scripts/update-admin-email.ts"
+    "admin:update-email": "ts-node scripts/update-admin-email.ts",
+    "content-key:generate": "ts-node scripts/generate-content-key.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

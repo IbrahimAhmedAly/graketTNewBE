@@ -167,6 +167,7 @@ export class CourseRepository {
                 duration: true,
                 videoUrl: true,
                 pdfUrl: true,
+                encryptedFileUrl: true,
               },
             },
           },

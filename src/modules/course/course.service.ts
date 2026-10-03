@@ -198,6 +198,8 @@ export class CourseService {
           // Only include URLs if user has access
           videoUrl: hasAccess ? content.videoUrl : undefined,
           pdfUrl: hasAccess ? content.pdfUrl : undefined,
+          // Protected copy for the desktop player (.gkv / .gkd)
+          encryptedFileUrl: hasAccess ? content.encryptedFileUrl : undefined,
         };
       }),
     }));

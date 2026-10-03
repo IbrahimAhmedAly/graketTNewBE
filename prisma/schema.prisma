@@ -19,6 +19,11 @@ model User {
   serial   String
   status   UserStatus @default(PENDING)
 
+  // Device the desktop player is bound to. Kept apart from `serial` (the
+  // phone) so one student can use one phone and one PC. Bound on the first
+  // desktop login; an admin clears it to let the student move to a new PC.
+  desktopSerial String?
+
   // Education targeting — student picks a level, then a grade within it.
   // Nullable so pre-existing users keep working; new users supply both.
   educationLevelId String?
@@ -280,6 +285,12 @@ model Content {
   // For PDFs
   pdfUrl   String?
   fileSize Int? // File size in bytes
+
+  // Encrypted copy for the desktop player: a .gkv (video) or .gkd (PDF) file
+  // made by the Graket encryptor. Useless on its own; the player needs a
+  // license from POST /protected-content/:id/license to open it. Separate from
+  // videoUrl/pdfUrl so the mobile app keeps working unchanged.
+  encryptedFileUrl String?
 
   // For Quizzes
   quiz Quiz?

@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsNumberString } from 'class-validator';
+import { IsEnum, IsString, IsNumberString, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { config } from 'dotenv';
 import { validateEnvironment } from '../utils/env-validation.utils';
@@ -68,6 +68,17 @@ class EnvironmentVariables {
   @IsString()
   @Transform(({ value }) => value || 'jtest123')
   UPAYMENT_TOKEN: string;
+
+  // Protected content (desktop player). Private half of the key the Graket
+  // encryptor wraps content keys with: either the PEM itself, or a path to it.
+  // Optional so the API still boots without it; only license requests fail.
+  @IsOptional()
+  @IsString()
+  CONTENT_PRIVATE_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  CONTENT_PRIVATE_KEY_PATH?: string;
 }
 
 const validatedEnv = validateEnvironment(EnvironmentVariables, process.env);
@@ -107,6 +118,11 @@ export const envConfig = {
   payment: {
     upaymentApiUrl: validatedEnv.UPAYMENT_API_URL,
     upaymentToken: validatedEnv.UPAYMENT_TOKEN,
+  },
+
+  contentProtection: {
+    privateKey: validatedEnv.CONTENT_PRIVATE_KEY,
+    privateKeyPath: validatedEnv.CONTENT_PRIVATE_KEY_PATH,
   },
 };
 

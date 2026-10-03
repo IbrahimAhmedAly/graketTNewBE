@@ -78,6 +78,7 @@ export class AdminContentService {
         videoUrl: content.videoUrl,
         pdfUrl: content.pdfUrl,
         fileSize: content.fileSize,
+        encryptedFileUrl: content.encryptedFileUrl,
       },
     }));
 
@@ -155,6 +156,7 @@ export class AdminContentService {
         videoUrl: content.videoUrl,
         pdfUrl: content.pdfUrl,
         fileSize: content.fileSize,
+        encryptedFileUrl: content.encryptedFileUrl,
       },
     }));
 

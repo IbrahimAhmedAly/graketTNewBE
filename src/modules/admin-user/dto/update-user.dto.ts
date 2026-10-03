@@ -26,6 +26,12 @@ export class UpdateUserDto {
   @IsOptional()
   serial?: string;
 
+  // PC the student is bound to in the desktop player. Send null to let the
+  // student sign in from a different PC.
+  @IsString()
+  @IsOptional()
+  desktopSerial?: string | null;
+
   @IsUUID('4')
   @IsOptional()
   educationLevelId?: string;

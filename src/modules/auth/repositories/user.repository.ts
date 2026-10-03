@@ -63,6 +63,18 @@ export class UserRepository {
   }
 
   /**
+   * Binds the desktop player to a device, only if no device is bound yet.
+   * Returns false when another device got there first.
+   */
+  async bindDesktopSerial(id: string, serial: string): Promise<boolean> {
+    const { count } = await this.prisma.user.updateMany({
+      where: { id, desktopSerial: null },
+      data: { desktopSerial: serial },
+    });
+    return count === 1;
+  }
+
+  /**
    * Update user status (activate/deactivate)
    */
   async updateStatus(id: string, status: UserStatus): Promise<User> {

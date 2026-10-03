@@ -47,4 +47,10 @@ export class CreateContentDto {
   @Type(() => Number)
   @IsOptional()
   fileSize?: number;
+
+  // Protected copy for the desktop player (.gkv video / .gkd PDF), made with
+  // the Graket encryptor. Send null to remove it.
+  @IsString()
+  @IsOptional()
+  encryptedFileUrl?: string | null;
 }

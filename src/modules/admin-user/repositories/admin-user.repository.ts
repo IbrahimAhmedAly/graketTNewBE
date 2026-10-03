@@ -13,6 +13,7 @@ export class AdminUserRepository {
     email: true,
     name: true,
     serial: true,
+    desktopSerial: true,
     status: true,
     educationLevelId: true,
     educationLevel: { select: { id: true, name: true } },
@@ -162,6 +163,9 @@ export class AdminUserRepository {
         ...(data.name !== undefined && { name: data.name }),
         ...(hashedPassword && { password: hashedPassword }),
         ...(data.serial && { serial: data.serial }),
+        ...(data.desktopSerial !== undefined && {
+          desktopSerial: data.desktopSerial,
+        }),
         ...(data.educationLevelId && {
           educationLevelId: data.educationLevelId,
         }),

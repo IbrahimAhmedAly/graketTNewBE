@@ -193,7 +193,7 @@ export class AuthService {
    * Login user
    */
   async login(loginDto: LoginDto) {
-    const { email, password, serial } = loginDto;
+    const { email, password, serial, deviceType } = loginDto;
 
     // Find user by email
     const user = await this.userRepository.findByEmail(email);
@@ -212,14 +212,22 @@ export class AuthService {
       );
     }
 
-    // Check serial match
-    if (user.serial !== serial) {
-      throw new ForbiddenException('لا يمكنك تسجيل الدخول من هذا الجهاز');
-    }
+    if (deviceType === 'desktop') {
+      // Status first: an inactive account must not claim the desktop slot.
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new ForbiddenException('الحساب غير مفعل');
+      }
+      await this.assertDesktopDevice(user.id, user.desktopSerial, serial);
+    } else {
+      // Check serial match
+      if (user.serial !== serial) {
+        throw new ForbiddenException('لا يمكنك تسجيل الدخول من هذا الجهاز');
+      }
 
-    // Check if user is active
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new ForbiddenException('الحساب غير مفعل');
+      // Check if user is active
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new ForbiddenException('الحساب غير مفعل');
+      }
     }
 
     // Generate auth tokens
@@ -484,6 +492,35 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
+  /**
+   * Allows one PC per student, alongside their phone.
+   *
+   * The first desktop login binds the student to that PC. Later logins must
+   * come from the same PC until an admin clears `desktopSerial`. The bind is
+   * conditional on the slot still being empty, so two PCs signing in at the
+   * same moment cannot both claim it.
+   */
+  private async assertDesktopDevice(
+    userId: string,
+    boundSerial: string | null,
+    serial: string,
+  ) {
+    if (boundSerial) {
+      if (boundSerial !== serial) {
+        throw new ForbiddenException('لا يمكنك تسجيل الدخول من هذا الجهاز');
+      }
+      return;
+    }
+
+    const bound = await this.userRepository.bindDesktopSerial(userId, serial);
+    if (!bound) {
+      const current = await this.userRepository.findById(userId);
+      if (current?.desktopSerial !== serial) {
+        throw new ForbiddenException('لا يمكنك تسجيل الدخول من هذا الجهاز');
+      }
     }
   }
 
