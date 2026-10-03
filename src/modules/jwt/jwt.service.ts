@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { envConfig } from '../../config/env.config';
 
 /**
@@ -35,17 +33,7 @@ export interface AuthTokens {
  */
 @Injectable()
 export class JwtTokenService {
-  private readonly privateKey: string;
-
-  constructor(private readonly jwtService: NestJwtService) {
-    try {
-      this.privateKey = readFileSync(join(process.cwd(), 'private.key'), 'utf8');
-    } catch (error) {
-      throw new Error(
-        'JWT keys not found. Generate them with: npm run generate:keys',
-      );
-    }
-  }
+  constructor(private readonly jwtService: NestJwtService) {}
 
   /**
    * Generate access and refresh tokens
@@ -60,8 +48,6 @@ export class JwtTokenService {
         type: TokenType.ACCESS,
       },
       {
-        secret: this.privateKey,
-        algorithm: 'RS256',
         expiresIn: envConfig.jwt.accessTokenExpiry as any,
       },
     );
@@ -80,8 +66,6 @@ export class JwtTokenService {
           type: TokenType.REFRESH,
         },
         {
-          secret: this.privateKey,
-          algorithm: 'RS256',
           expiresIn: envConfig.jwt.refreshTokenExpiry as any,
         },
       );
@@ -110,8 +94,6 @@ export class JwtTokenService {
         purpose,
       },
       {
-        secret: this.privateKey,
-        algorithm: 'RS256',
         expiresIn: expiresIn as any,
       },
     );
@@ -126,7 +108,7 @@ export class JwtTokenService {
   ): Promise<string> {
     try {
       const payload = this.jwtService.verify(token, {
-        algorithms: ['RS256'],
+        algorithms: ['HS256'],
       });
 
       if (payload.type !== TokenType.VERIFICATION) {
@@ -149,7 +131,7 @@ export class JwtTokenService {
   async verifyRefreshToken(token: string): Promise<string> {
     try {
       const payload = this.jwtService.verify(token, {
-        algorithms: ['RS256'],
+        algorithms: ['HS256'],
       });
 
       if (payload.type !== TokenType.REFRESH) {
@@ -168,7 +150,7 @@ export class JwtTokenService {
   async verifyAccessToken(token: string): Promise<{ id: string; email: string }> {
     try {
       const payload = this.jwtService.verify(token, {
-        algorithms: ['RS256'],
+        algorithms: ['HS256'],
       });
 
       if (payload.type !== TokenType.ACCESS) {

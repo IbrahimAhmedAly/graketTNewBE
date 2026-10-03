@@ -1,4 +1,10 @@
-import { IsEnum, IsString, IsNumberString, IsOptional } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsNumberString,
+  IsOptional,
+  MinLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { config } from 'dotenv';
 import { validateEnvironment } from '../utils/env-validation.utils';
@@ -24,6 +30,11 @@ class EnvironmentVariables {
   DATABASE_URL: string;
 
   // JWT Configuration
+  // Signs and verifies all tokens (HS256). Generate with: openssl rand -hex 32
+  @IsString()
+  @MinLength(32)
+  JWT_SECRET: string;
+
   @IsString()
   @Transform(({ value }) => value || '1h')
   JWT_ACCESS_TOKEN_EXPIRY: string;
@@ -95,6 +106,7 @@ export const envConfig = {
   },
 
   jwt: {
+    secret: validatedEnv.JWT_SECRET,
     accessTokenExpiry: validatedEnv.JWT_ACCESS_TOKEN_EXPIRY,
     refreshTokenExpiry: validatedEnv.JWT_REFRESH_TOKEN_EXPIRY,
   },

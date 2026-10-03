@@ -1,10 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { envConfig } from '../../../config/env.config';
 
 /**
  * JWT Payload structure
@@ -26,13 +25,11 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly prisma: PrismaService) {
-    const publicKey = readFileSync(join(process.cwd(), 'public.key'), 'utf8');
-
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: publicKey,
-      algorithms: ['RS256'],
+      secretOrKey: envConfig.jwt.secret,
+      algorithms: ['HS256'],
     });
   }
 
